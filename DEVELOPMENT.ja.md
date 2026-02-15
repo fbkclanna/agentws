@@ -261,3 +261,15 @@ GitHub Actions で以下を自動実行:
 - `os.Stdout` への直接書き込みはテストでキャプチャできない。必ず `cmd.OutOrStdout()` を使う。
 - `git init` のような Git コマンドを実行する際、`cmd.Dir` に指定するディレクトリが存在していることを確認する。
 - `--strategy reset` は `--force` なしでは実行を拒否する安全策がある。
+
+## 推奨する GitHub リポジトリ設定
+
+本番運用に向けた GitHub リポジトリ設定の推奨事項:
+
+- **`main` ブランチの保護ルール**:
+  - マージ前に Pull Request レビューを必須にする（最低 1 名の承認）
+  - マージ前にステータスチェックのパスを必須にする（`test`, `lint`, `security`）
+  - マージ前にブランチが最新であることを必須にする
+  - force push を禁止する
+- **Dependabot を有効にする**（`.github/dependabot.yml` で設定済み）
+- **GitHub Actions を有効にする**（`.github/workflows/` で設定済み）

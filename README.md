@@ -460,6 +460,12 @@ agentws sync --lock
 agentws sync --update-lock
 ```
 
+## Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+> 日本語のコントリビュートガイドは [CONTRIBUTING.ja.md](CONTRIBUTING.ja.md) をご覧ください。
+
 ## Development
 
 See [DEVELOPMENT.md](DEVELOPMENT.md) for details.

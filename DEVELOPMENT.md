@@ -257,3 +257,15 @@ Releases use GoReleaser to generate binaries for Linux/macOS/Windows × amd64/ar
 - Writing directly to `os.Stdout` cannot be captured in tests. Always use `cmd.OutOrStdout()`.
 - When running Git commands like `git init`, ensure the directory specified in `cmd.Dir` exists.
 - `--strategy reset` includes a safety mechanism that refuses to execute without `--force`.
+
+## Recommended GitHub Repository Settings
+
+When setting up the GitHub repository for production use, we recommend:
+
+- **Branch protection on `main`**:
+  - Require pull request reviews before merging (at least 1 approval)
+  - Require status checks to pass before merging (`test`, `lint`, `security`)
+  - Require branches to be up to date before merging
+  - Do not allow force pushes
+- **Enable Dependabot** for automated dependency updates (configured in `.github/dependabot.yml`)
+- **Enable GitHub Actions** for CI/CD (configured in `.github/workflows/`)
