@@ -1,0 +1,10 @@
+.idea
+/agentws
+TODO.md
+LESSONS.md
+.claude
+CLAUDE.md
+tmp
+.lefthook-local.yml
+.lefthook/
+coverage.out
