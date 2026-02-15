@@ -46,7 +46,7 @@ func setupWorkspace(t *testing.T, repoCount int) (wsDir string, bareRepos []stri
 	}
 
 	data, _ := yaml.Marshal(&m)
-	if err := os.WriteFile(filepath.Join(wsDir, "workspace.yaml"), data, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(wsDir, "workspace.yaml"), data, 0644); err != nil { //nolint:gosec // test file
 		t.Fatal(err)
 	}
 	return wsDir, bareRepos
@@ -157,7 +157,7 @@ func TestRunSync_strategySafe_skipsDirty(t *testing.T) {
 
 	// Make dirty.
 	dir := filepath.Join(wsDir, "repos", "backend")
-	if err := os.WriteFile(filepath.Join(dir, "dirty.txt"), []byte("x"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "dirty.txt"), []byte("x"), 0644); err != nil { //nolint:gosec // test file
 		t.Fatal(err)
 	}
 

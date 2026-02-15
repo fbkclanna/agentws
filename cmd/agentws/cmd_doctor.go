@@ -83,7 +83,7 @@ func checkGitFeature(feature string) bool {
 // GitHub returns exit code 1 even on success (with a welcome message), so
 // we check stderr for "successfully authenticated".
 func checkSSHAuth(host string) bool {
-	out, _ := exec.Command("ssh", "-T", "-o", "StrictHostKeyChecking=accept-new",
+	out, _ := exec.Command("ssh", "-T", "-o", "StrictHostKeyChecking=accept-new", //nolint:gosec // host is derived from workspace manifest, not arbitrary user input
 		"-o", "ConnectTimeout=5", "git@"+host).CombinedOutput()
 	result := strings.ToLower(string(out))
 	return strings.Contains(result, "successfully authenticated") ||

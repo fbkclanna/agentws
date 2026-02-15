@@ -11,7 +11,7 @@ import (
 
 // Load reads and validates a workspace.yaml file.
 func Load(path string) (*Workspace, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // path is workspace manifest file path
 	if err != nil {
 		return nil, fmt.Errorf("reading manifest: %w", err)
 	}

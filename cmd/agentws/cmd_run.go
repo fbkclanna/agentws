@@ -33,7 +33,7 @@ func runRun(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("no command specified after --")
 	}
 
-	c := exec.Command(args[0], args[1:]...)
+	c := exec.Command(args[0], args[1:]...) //nolint:gosec // intentional: user-specified command via `run --`
 	c.Dir = root
 	c.Stdin = os.Stdin
 	c.Stdout = os.Stdout

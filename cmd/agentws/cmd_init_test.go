@@ -21,7 +21,7 @@ repos:
     url: git@github.com:org/svc.git
     path: repos/svc
 `)
-	if err := os.WriteFile(src, data, 0644); err != nil {
+	if err := os.WriteFile(src, data, 0644); err != nil { //nolint:gosec // test file
 		t.Fatal(err)
 	}
 
@@ -47,7 +47,7 @@ repos:
 func TestRunInit_alreadyExists(t *testing.T) {
 	dir := t.TempDir()
 	wsDir := filepath.Join(dir, "myws")
-	if err := os.MkdirAll(wsDir, 0755); err != nil {
+	if err := os.MkdirAll(wsDir, 0755); err != nil { //nolint:gosec // test directory
 		t.Fatal(err)
 	}
 
@@ -63,7 +63,7 @@ func TestRunInit_alreadyExists(t *testing.T) {
 func TestRunInit_force(t *testing.T) {
 	dir := t.TempDir()
 	wsDir := filepath.Join(dir, "myws")
-	if err := os.MkdirAll(wsDir, 0755); err != nil {
+	if err := os.MkdirAll(wsDir, 0755); err != nil { //nolint:gosec // test directory
 		t.Fatal(err)
 	}
 
@@ -77,7 +77,7 @@ repos:
     url: git@github.com:org/app.git
     path: repos/app
 `)
-	if err := os.WriteFile(src, data, 0644); err != nil {
+	if err := os.WriteFile(src, data, 0644); err != nil { //nolint:gosec // test file
 		t.Fatal(err)
 	}
 
