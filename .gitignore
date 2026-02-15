@@ -8,3 +8,14 @@ tmp
 .lefthook-local.yml
 .lefthook/
 coverage.out
+.DS_Store
+dist/
+*.prof
+*.test
+*.swp
+*.swo
+*~
+*.bak
+*.orig
+.env
+.env.local
