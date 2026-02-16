@@ -185,10 +185,14 @@ func repoIDFromURL(url string) string {
 }
 
 // interactiveAddRepos runs an interactive loop using bubbletea to collect
-// repository information from the user.
-func interactiveAddRepos(name, reposRoot string) ([]manifest.Repo, error) {
+// repository information from the user. existingIDs prevents adding repos
+// with IDs that already exist in the workspace.
+func interactiveAddRepos(name, reposRoot string, existingIDs map[string]bool) ([]manifest.Repo, error) {
 	var repos []manifest.Repo
 	seenIDs := make(map[string]bool)
+	for id := range existingIDs {
+		seenIDs[id] = true
+	}
 
 	for {
 		repoURL, err := promptInput(

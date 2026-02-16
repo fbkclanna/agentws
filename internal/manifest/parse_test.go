@@ -1,6 +1,8 @@
 package manifest
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -231,5 +233,87 @@ func TestRepo_IsRequired(t *testing.T) {
 	r2 := Repo{Required: &f}
 	if r2.IsRequired() {
 		t.Error("should not be required")
+	}
+}
+
+func TestValidate(t *testing.T) {
+	t.Run("valid", func(t *testing.T) {
+		ws := &Workspace{
+			Version: 1,
+			Name:    "test",
+			Repos: []Repo{
+				{ID: "a", URL: "https://example.com/a.git", Path: "repos/a"},
+			},
+		}
+		if err := Validate(ws); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("invalid version", func(t *testing.T) {
+		ws := &Workspace{Version: 0, Name: "test"}
+		if err := Validate(ws); err == nil {
+			t.Fatal("expected error for invalid version")
+		}
+	})
+
+	t.Run("duplicate ID", func(t *testing.T) {
+		ws := &Workspace{
+			Version: 1,
+			Name:    "test",
+			Repos: []Repo{
+				{ID: "a", URL: "https://example.com/a.git", Path: "repos/a"},
+				{ID: "a", URL: "https://example.com/b.git", Path: "repos/b"},
+			},
+		}
+		if err := Validate(ws); err == nil {
+			t.Fatal("expected error for duplicate ID")
+		}
+	})
+}
+
+func TestSave_roundTrip(t *testing.T) {
+	ws := &Workspace{
+		Version:   1,
+		Name:      "roundtrip",
+		ReposRoot: "repos",
+		Repos: []Repo{
+			{ID: "backend", URL: "https://example.com/backend.git", Path: "repos/backend", Ref: "main"},
+			{ID: "frontend", URL: "https://example.com/frontend.git", Path: "repos/frontend", Ref: "develop", Tags: []string{"web"}},
+		},
+	}
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "workspace.yaml")
+
+	if err := Save(path, ws); err != nil {
+		t.Fatalf("Save failed: %v", err)
+	}
+
+	if _, err := os.Stat(path); err != nil {
+		t.Fatalf("file not created: %v", err)
+	}
+
+	loaded, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load failed: %v", err)
+	}
+
+	if loaded.Name != ws.Name {
+		t.Errorf("name = %q, want %q", loaded.Name, ws.Name)
+	}
+	if loaded.ReposRoot != ws.ReposRoot {
+		t.Errorf("repos_root = %q, want %q", loaded.ReposRoot, ws.ReposRoot)
+	}
+	if len(loaded.Repos) != len(ws.Repos) {
+		t.Fatalf("repos count = %d, want %d", len(loaded.Repos), len(ws.Repos))
+	}
+	for i, r := range loaded.Repos {
+		if r.ID != ws.Repos[i].ID {
+			t.Errorf("repos[%d].id = %q, want %q", i, r.ID, ws.Repos[i].ID)
+		}
+		if r.URL != ws.Repos[i].URL {
+			t.Errorf("repos[%d].url = %q, want %q", i, r.URL, ws.Repos[i].URL)
+		}
 	}
 }

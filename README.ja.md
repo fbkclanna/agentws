@@ -133,6 +133,32 @@ agentws init foo --from git@github.com:org/workspaces.git#foo.yaml
 | `--from <src>` | manifest を取り込む（例: ローカルパス、または `repo#path` 形式） |
 | `--force`      | 既存 workspace があっても上書き（注意）                    |
 
+### `add [url ...]`
+
+既存の workspace にリポジトリを追加します。CLI モードと対話モードの両方に対応しています。
+
+```sh
+# CLI モード: URL を指定して追加
+agentws add https://github.com/org/backend.git
+agentws add https://github.com/org/api.git --id api-service --ref develop --tag core
+
+# 対話モード: URL なしで実行
+agentws add
+```
+
+URL を指定せず stdin が TTY の場合、対話モードが起動します（`init` と同じインターフェース）。
+
+**オプション:**
+
+| オプション | 説明 |
+|--------|-------------|
+| `--id <string>` | リポジトリ ID を上書き（URL 1個のみ有効） |
+| `--path <string>` | リポジトリパスを上書き（URL 1個のみ有効） |
+| `--ref <string>` | チェックアウトする ref（デフォルト: 自動検出） |
+| `--tag <string>` | リポジトリに付与するタグ（複数指定可） |
+| `--sync` | 追加後に即座にクローン |
+| `--json` | 追加されたリポジトリを JSON で出力 |
+
 ### `sync`
 
 `workspace.yaml` に従って、repo を clone/fetch/checkout して workspace を揃えます。
