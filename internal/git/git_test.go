@@ -185,3 +185,55 @@ func TestIsCloned_notCloned(t *testing.T) {
 		t.Error("expected false for nonexistent path")
 	}
 }
+
+func TestInit(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "newrepo")
+	if err := os.MkdirAll(dir, 0750); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := Init(dir); err != nil {
+		t.Fatalf("Init: %v", err)
+	}
+
+	if !IsCloned(dir) {
+		t.Error("expected .git directory to exist after Init")
+	}
+}
+
+func TestAddAndCommit(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "repo")
+	if err := os.MkdirAll(dir, 0750); err != nil {
+		t.Fatal(err)
+	}
+	if err := Init(dir); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a file, add, and commit.
+	if err := os.WriteFile(filepath.Join(dir, "hello.txt"), []byte("hello\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := Add(dir, "hello.txt"); err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+	if err := Commit(dir, "first commit"); err != nil {
+		t.Fatalf("Commit: %v", err)
+	}
+
+	// Verify HEAD exists.
+	sha, err := HeadCommit(dir)
+	if err != nil {
+		t.Fatalf("HeadCommit after commit: %v", err)
+	}
+	if len(sha) < 7 {
+		t.Errorf("expected valid short SHA, got %q", sha)
+	}
+}
+
+func TestIsGitInstalled(t *testing.T) {
+	// In a test environment with git available, this should be true.
+	if !IsGitInstalled() {
+		t.Error("expected IsGitInstalled to return true in test environment")
+	}
+}
