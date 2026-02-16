@@ -194,6 +194,73 @@ func output(dir string, args ...string) (string, error) {
 	return stdout.String(), nil
 }
 
+// IsGitInstalled returns true if git is available on the system PATH.
+func IsGitInstalled() bool {
+	_, err := exec.LookPath("git")
+	return err == nil
+}
+
+// Init runs git init in the given directory.
+func Init(dir string) error {
+	return runQuiet(dir, "init")
+}
+
+// Add stages the given paths in the repository.
+func Add(dir string, paths ...string) error {
+	args := append([]string{"add", "--"}, paths...)
+	return runQuiet(dir, args...)
+}
+
+// Commit creates a commit with the given message.
+// If user.name or user.email is not configured globally, it sets repo-local fallback values.
+func Commit(dir, message string) error {
+	if err := ensureCommitIdentity(dir); err != nil {
+		return fmt.Errorf("setting commit identity: %w", err)
+	}
+	return runQuiet(dir, "commit", "-m", message)
+}
+
+// ensureCommitIdentity sets repo-local user.name/user.email if they are not configured.
+func ensureCommitIdentity(dir string) error {
+	if _, err := outputQuiet(dir, "config", "user.name"); err != nil {
+		if err2 := runQuiet(dir, "config", "user.name", "agentws"); err2 != nil {
+			return err2
+		}
+	}
+	if _, err := outputQuiet(dir, "config", "user.email"); err != nil {
+		if err2 := runQuiet(dir, "config", "user.email", "agentws@localhost"); err2 != nil {
+			return err2
+		}
+	}
+	return nil
+}
+
+// runQuiet executes a git command without printing stdout.
+// Stderr is captured and included in the error message on failure.
+func runQuiet(dir string, args ...string) error {
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("git %s: %w: %s", strings.Join(args, " "), err, stderr.String())
+	}
+	return nil
+}
+
+// outputQuiet executes a git command and returns its stdout without printing to the console.
+func outputQuiet(dir string, args ...string) (string, error) {
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("git %s: %w: %s", strings.Join(args, " "), err, stderr.String())
+	}
+	return stdout.String(), nil
+}
+
 func isExitError(err error) bool {
 	_, ok := err.(*exec.ExitError)
 	return ok
