@@ -130,6 +130,32 @@ agentws init foo --from git@github.com:org/workspaces.git#foo.yaml
 | `--from <src>` | Import a manifest (e.g., local path or `repo#path` format) |
 | `--force` | Overwrite even if a workspace already exists (use with caution) |
 
+### `add [url ...]`
+
+Adds repositories to an existing workspace. Supports both CLI and interactive modes.
+
+```sh
+# CLI mode: add one or more repos
+agentws add https://github.com/org/backend.git
+agentws add https://github.com/org/api.git --id api-service --ref develop --tag core
+
+# Interactive mode: run without URLs
+agentws add
+```
+
+When no URLs are provided and stdin is a TTY, interactive mode launches (same interface as `init`).
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--id <string>` | Repository ID override (single URL only) |
+| `--path <string>` | Repository path override (single URL only) |
+| `--ref <string>` | Git ref to checkout (default: auto-detected) |
+| `--tag <string>` | Tags to assign (repeatable) |
+| `--sync` | Clone repositories immediately after adding |
+| `--json` | Output added repositories as JSON |
+
 ### `sync`
 
 Clones, fetches, and checks out repos according to `workspace.yaml` to bring the workspace in sync. Idempotent (designed to produce consistent state regardless of how many times it runs).

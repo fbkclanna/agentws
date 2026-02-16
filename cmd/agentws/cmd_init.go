@@ -58,7 +58,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("interactive init requires a TTY; use --from to specify a manifest")
 		}
 		reposRoot := "repos"
-		repos, err := interactiveAddRepos(name, reposRoot)
+		repos, err := interactiveAddRepos(name, reposRoot, nil)
 		if err != nil {
 			return fmt.Errorf("interactive setup: %w", err)
 		}

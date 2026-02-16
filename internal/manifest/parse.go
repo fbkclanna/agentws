@@ -9,6 +9,24 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// Validate checks the workspace manifest for errors.
+func Validate(ws *Workspace) error { return validate(ws) }
+
+// Save validates and writes a workspace manifest to disk.
+func Save(path string, ws *Workspace) error {
+	if err := validate(ws); err != nil {
+		return err
+	}
+	data, err := yaml.Marshal(ws)
+	if err != nil {
+		return fmt.Errorf("marshaling manifest: %w", err)
+	}
+	if err := os.WriteFile(path, data, 0644); err != nil { //nolint:gosec // manifest file needs to be readable
+		return fmt.Errorf("writing manifest: %w", err)
+	}
+	return nil
+}
+
 // Load reads and validates a workspace.yaml file.
 func Load(path string) (*Workspace, error) {
 	data, err := os.ReadFile(path) //nolint:gosec // path is workspace manifest file path
