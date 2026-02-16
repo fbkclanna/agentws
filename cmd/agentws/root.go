@@ -22,7 +22,6 @@ func newRootCmd() *cobra.Command {
 		newBranchesCmd(),
 		newCheckoutCmd(),
 		newStartCmd(),
-		newCleanCmd(),
 		newDoctorCmd(),
 		newRunCmd(),
 	)

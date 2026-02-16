@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **CLI with 11 subcommands**: `init`, `sync`, `status`, `pin`, `branches`, `checkout`, `start`, `clean`, `doctor`, `run`
+- **CLI with 10 subcommands**: `init`, `sync`, `status`, `pin`, `branches`, `checkout`, `start`, `doctor`, `run`
 - **`workspace.yaml` manifest**: declarative workspace configuration with repos, profiles, defaults, and post-sync hooks
 - **`workspace.lock.yaml`**: commit pinning for reproducible environments
 - **Profile-based filtering**: select repos by tags or IDs using `--profile`, `--only`, `--skip`

@@ -309,15 +309,6 @@ agentws start ABC-123 search-v2
 > - remote に同名ブランチが存在する repo はそれを checkout します（tracking branch を作成）。
 > - ブランチが存在しない repo は `--from` を起点に新規作成します。
 
-### `clean`
-
-workspace ディレクトリを削除します（危険）。
-破壊的操作のため、`--force` が必須です。
-
-```sh
-agentws clean --force
-```
-
 ### `doctor`
 
 開発環境の診断を行います。問題がある場合はエラーを報告します。
