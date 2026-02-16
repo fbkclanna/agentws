@@ -303,14 +303,6 @@ agentws start ABC-123 search-v2
 > - If a remote branch with the same name already exists, it will be checked out (creating a tracking branch).
 > - For repos where the branch doesn't exist, a new branch is created from the `--from` reference.
 
-### `clean`
-
-Deletes the workspace directory (dangerous). Requires `--force` as this is a destructive operation.
-
-```sh
-agentws clean --force
-```
-
 ### `doctor`
 
 Runs diagnostics on the development environment. Reports errors if issues are found.

@@ -108,7 +108,6 @@ agentws/
 │   ├── cmd_branches.go   # branches サブコマンド
 │   ├── cmd_checkout.go   # checkout サブコマンド
 │   ├── cmd_start.go      # start サブコマンド
-│   ├── cmd_clean.go      # clean サブコマンド
 │   ├── cmd_doctor.go     # doctor サブコマンド
 │   ├── cmd_run.go        # run サブコマンド
 │   ├── templates.go      # init --template のテンプレート定義

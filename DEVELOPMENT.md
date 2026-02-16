@@ -108,7 +108,6 @@ agentws/
 │   ├── cmd_branches.go   # branches subcommand
 │   ├── cmd_checkout.go   # checkout subcommand
 │   ├── cmd_start.go      # start subcommand
-│   ├── cmd_clean.go      # clean subcommand
 │   ├── cmd_doctor.go     # doctor subcommand
 │   ├── cmd_run.go        # run subcommand
 │   ├── templates.go      # Template definitions for init --template
