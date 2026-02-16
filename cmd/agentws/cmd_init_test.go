@@ -59,6 +59,15 @@ repos:
 	if !strings.Contains(string(gitignoreData), "repos/") {
 		t.Errorf(".gitignore should contain repos/, got: %s", gitignoreData)
 	}
+
+	// Verify AGENTS.md exists and contains the workspace name.
+	agentsMD, err := os.ReadFile(filepath.Join(wsDir, "AGENTS.md")) //nolint:gosec // test file
+	if err != nil {
+		t.Fatalf("reading AGENTS.md: %v", err)
+	}
+	if !strings.Contains(string(agentsMD), "imported") {
+		t.Errorf("AGENTS.md should contain workspace name 'imported', got: %s", agentsMD)
+	}
 }
 
 func TestRunInit_alreadyExists(t *testing.T) {
@@ -114,6 +123,11 @@ repos:
 	if _, err := os.Stat(filepath.Join(wsDir, ".git")); err != nil {
 		t.Errorf("expected .git directory with --force: %v", err)
 	}
+
+	// Verify AGENTS.md exists.
+	if _, err := os.Stat(filepath.Join(wsDir, "AGENTS.md")); err != nil {
+		t.Errorf("expected AGENTS.md with --force: %v", err)
+	}
 }
 
 func TestRunInit_noGit(t *testing.T) {
@@ -149,6 +163,10 @@ repos:
 	// workspace.yaml should still exist.
 	if _, err := os.Stat(filepath.Join(wsDir, "workspace.yaml")); err != nil {
 		t.Errorf("workspace.yaml should exist: %v", err)
+	}
+	// AGENTS.md should exist even without git.
+	if _, err := os.Stat(filepath.Join(wsDir, "AGENTS.md")); err != nil {
+		t.Errorf("AGENTS.md should exist even with --no-git: %v", err)
 	}
 }
 
@@ -256,6 +274,30 @@ repos:
 	}
 	if !strings.Contains(string(gitignoreData), "src/vendor/") {
 		t.Errorf(".gitignore should contain custom repos_root 'src/vendor/', got: %s", gitignoreData)
+	}
+}
+
+func TestGenerateAgentsMD(t *testing.T) {
+	tests := []struct {
+		name      string
+		wsName    string
+		reposRoot string
+		wantName  string
+		wantRoot  string
+	}{
+		{"default", "my-workspace", "repos", "my-workspace", "repos/"},
+		{"custom root", "proj", "vendor/src", "proj", "vendor/src/"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := generateAgentsMD(tt.wsName, tt.reposRoot)
+			if !strings.Contains(got, tt.wantName) {
+				t.Errorf("generateAgentsMD() should contain workspace name %q", tt.wantName)
+			}
+			if !strings.Contains(got, tt.wantRoot) {
+				t.Errorf("generateAgentsMD() should contain repos_root %q", tt.wantRoot)
+			}
+		})
 	}
 }
 

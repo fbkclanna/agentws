@@ -83,6 +83,12 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("writing manifest: %w", err)
 	}
 
+	agentsMDPath := filepath.Join(wsDir, "AGENTS.md")
+	agentsMD := generateAgentsMD(name, reposRoot)
+	if err := os.WriteFile(agentsMDPath, []byte(agentsMD), 0644); err != nil { //nolint:gosec // AGENTS.md needs to be readable
+		return fmt.Errorf("writing AGENTS.md: %w", err)
+	}
+
 	if !noGit {
 		initGitRepo(cmd, wsDir, reposRoot)
 	}
@@ -116,7 +122,7 @@ func initGitRepo(cmd *cobra.Command, wsDir, reposRoot string) {
 		return
 	}
 
-	if err := git.Add(wsDir, "workspace.yaml", ".gitignore"); err != nil {
+	if err := git.Add(wsDir, "workspace.yaml", ".gitignore", "AGENTS.md"); err != nil {
 		_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Warning: git add failed: %v\n", err)
 		return
 	}
@@ -125,6 +131,44 @@ func initGitRepo(cmd *cobra.Command, wsDir, reposRoot string) {
 		_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Warning: git commit failed: %v\n", err)
 		return
 	}
+}
+
+// generateAgentsMD creates AGENTS.md content with workspace name and repos_root embedded.
+func generateAgentsMD(name, reposRoot string) string {
+	return fmt.Sprintf(`# %s — agentws workspace
+
+This workspace is managed by **agentws**, a multi-repo workspace manager for coding agents.
+
+## Directory structure
+
+| Path | Description |
+|---|---|
+| `+"`workspace.yaml`"+` | Workspace manifest — defines repos, branches, and settings |
+| `+"`workspace.lock.yaml`"+` | Lock file — pinned commit SHAs (created by `+"`agentws pin`"+`) |
+| `+"`%s/`"+` | Root directory where all repositories are cloned |
+
+## Quick reference
+
+| Command | Description |
+|---|---|
+| `+"`agentws sync`"+` | Clone or update all repos to match the manifest |
+| `+"`agentws status`"+` | Show each repo's branch, HEAD, and dirty state |
+| `+"`agentws add`"+` | Add a new repo to the workspace interactively |
+| `+"`agentws pin`"+` | Snapshot current HEADs into `+"`workspace.lock.yaml`"+` |
+| `+"`agentws branches`"+` | List branches across all repos |
+| `+"`agentws checkout --branch <b>`"+` | Switch all repos to the given branch |
+| `+"`agentws start <ticket> <slug>`"+` | Create a feature branch across all repos |
+| `+"`agentws run -- <cmd>`"+` | Run a command in the workspace root |
+
+## Typical workflow
+
+`+"```"+`sh
+agentws sync            # clone / update repos
+agentws status          # verify state
+# ... make changes ...
+agentws pin             # lock current commits
+`+"```"+`
+`, name, reposRoot)
 }
 
 // generateGitignore creates .gitignore content with the repos directory excluded.
