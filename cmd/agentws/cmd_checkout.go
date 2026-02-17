@@ -18,7 +18,7 @@ func newCheckoutCmd() *cobra.Command {
 	cmd.Flags().String("branch", "", "Branch name to checkout (required)")
 	_ = cmd.MarkFlagRequired("branch")
 	cmd.Flags().Bool("create", false, "Create the branch if it does not exist")
-	cmd.Flags().String("from", "origin/main", "Starting point for new branches")
+	cmd.Flags().String("from", "", "Starting point for new branches (overrides base_ref)")
 	cmd.Flags().String("profile", "", "Filter by profile")
 	cmd.Flags().StringSlice("only", nil, "Include only these repo IDs")
 	cmd.Flags().StringSlice("skip", nil, "Exclude these repo IDs")
@@ -48,6 +48,8 @@ func runCheckout(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("--strategy reset requires --force")
 	}
 
+	fromExplicit := cmd.Flags().Changed("from")
+
 	ctx, err := workspace.Load(root)
 	if err != nil {
 		return err
@@ -64,36 +66,50 @@ func runCheckout(cmd *cobra.Command, _ []string) error {
 
 	out := cmd.OutOrStdout()
 	for _, r := range repos {
-		dir := ctx.RepoDir(r)
-		if !git.IsCloned(dir) {
-			_, _ = fmt.Fprintf(out, "Skipping %s (not cloned)\n", r.ID)
-			continue
-		}
-
-		if err := git.Fetch(dir); err != nil {
-			return fmt.Errorf("repo %s: fetch: %w", r.ID, err)
-		}
-
-		if err := handleDirty(dir, r.ID, strategy); err != nil {
+		if err := checkoutRepo(ctx, r, branch, create, from, fromExplicit, strategy, dryRun, out); err != nil {
 			return err
 		}
-
-		action, err := resolveCheckoutAction(dir, branch, create, from)
-		if err != nil {
-			return fmt.Errorf("repo %s: %w", r.ID, err)
-		}
-
-		if dryRun {
-			_, _ = fmt.Fprintf(out, "[dry-run] %s: %s\n", r.ID, action.description)
-			continue
-		}
-
-		if err := action.execute(dir); err != nil {
-			return fmt.Errorf("repo %s: %w", r.ID, err)
-		}
-		_, _ = fmt.Fprintf(out, "%s: %s\n", r.ID, action.description)
 	}
 
+	return nil
+}
+
+func checkoutRepo(ctx *workspace.Context, r manifest.Repo, branch string, create bool, from string, fromExplicit bool, strategy workspace.Strategy, dryRun bool, out interface{ Write([]byte) (int, error) }) error {
+	dir := ctx.RepoDir(r)
+	if !git.IsCloned(dir) {
+		_, _ = fmt.Fprintf(out, "Skipping %s (not cloned)\n", r.ID)
+		return nil
+	}
+
+	if err := git.Fetch(dir); err != nil {
+		return fmt.Errorf("repo %s: fetch: %w", r.ID, err)
+	}
+
+	// Resolve from before handleDirty to avoid side effects (stash/reset)
+	// when the resolution fails. Only resolves when branch creation is needed.
+	repoFrom, err := resolveFromIfNeeded(dir, branch, create, r, ctx.Manifest.Defaults, from, fromExplicit)
+	if err != nil {
+		return fmt.Errorf("repo %s: %w", r.ID, err)
+	}
+
+	if err := handleDirty(dir, r.ID, strategy); err != nil {
+		return err
+	}
+
+	action, err := resolveCheckoutAction(dir, branch, create, repoFrom)
+	if err != nil {
+		return fmt.Errorf("repo %s: %w", r.ID, err)
+	}
+
+	if dryRun {
+		_, _ = fmt.Fprintf(out, "[dry-run] %s: %s\n", r.ID, action.description)
+		return nil
+	}
+
+	if err := action.execute(dir); err != nil {
+		return fmt.Errorf("repo %s: %w", r.ID, err)
+	}
+	_, _ = fmt.Fprintf(out, "%s: %s\n", r.ID, action.description)
 	return nil
 }
 

@@ -40,7 +40,7 @@ func TestBuildWorkspace(t *testing.T) {
 		{ID: "frontend", URL: "git@github.com:org/frontend.git", Path: "repos/frontend", Ref: "develop"},
 	}
 
-	data, err := buildWorkspace("myws", "repos", repos)
+	data, err := buildWorkspace("myws", "repos", "main", repos)
 	if err != nil {
 		t.Fatalf("buildWorkspace error: %v", err)
 	}
@@ -57,6 +57,9 @@ func TestBuildWorkspace(t *testing.T) {
 	if ws.ReposRoot != "repos" {
 		t.Errorf("repos_root = %q, want %q", ws.ReposRoot, "repos")
 	}
+	if ws.Defaults.BaseRef != "main" {
+		t.Errorf("defaults.base_ref = %q, want %q", ws.Defaults.BaseRef, "main")
+	}
 	if len(ws.Repos) != 2 {
 		t.Fatalf("repos count = %d, want 2", len(ws.Repos))
 	}
@@ -69,7 +72,7 @@ func TestBuildWorkspace(t *testing.T) {
 }
 
 func TestBuildWorkspace_empty(t *testing.T) {
-	data, err := buildWorkspace("empty", "repos", nil)
+	data, err := buildWorkspace("empty", "repos", "", nil)
 	if err != nil {
 		t.Fatalf("buildWorkspace error: %v", err)
 	}
@@ -82,5 +85,26 @@ func TestBuildWorkspace_empty(t *testing.T) {
 	}
 	if len(ws.Repos) != 0 {
 		t.Errorf("repos count = %d, want 0", len(ws.Repos))
+	}
+	if ws.Defaults.BaseRef != "" {
+		t.Errorf("defaults.base_ref = %q, want empty", ws.Defaults.BaseRef)
+	}
+}
+
+func TestBuildWorkspace_withBaseRef(t *testing.T) {
+	repos := []manifest.Repo{
+		{ID: "svc", URL: "git@github.com:org/svc.git", Path: "repos/svc", Ref: "develop"},
+	}
+
+	data, err := buildWorkspace("ws", "repos", "develop", repos)
+	if err != nil {
+		t.Fatalf("buildWorkspace error: %v", err)
+	}
+	ws, err := manifest.Parse(data)
+	if err != nil {
+		t.Fatalf("buildWorkspace produced invalid manifest: %v", err)
+	}
+	if ws.Defaults.BaseRef != "develop" {
+		t.Errorf("defaults.base_ref = %q, want %q", ws.Defaults.BaseRef, "develop")
 	}
 }

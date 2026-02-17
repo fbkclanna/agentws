@@ -36,6 +36,9 @@ func TestBuildNewRepos_singleURL(t *testing.T) {
 	if r.Ref == "" {
 		t.Error("ref should be detected or defaulted")
 	}
+	if r.BaseRef != r.Ref {
+		t.Errorf("base_ref = %q, want same as ref %q", r.BaseRef, r.Ref)
+	}
 }
 
 func TestBuildNewRepos_idOverride(t *testing.T) {

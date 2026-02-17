@@ -21,6 +21,7 @@ func newInitCmd() *cobra.Command {
 		RunE:  runInit,
 	}
 	cmd.Flags().String("from", "", "Import manifest from local path or repo#path")
+	cmd.Flags().String("base-ref", "", "Default base branch for feature branches")
 	cmd.Flags().Bool("force", false, "Overwrite existing workspace")
 	cmd.Flags().Bool("no-git", false, "Skip git repository initialization")
 	return cmd
@@ -30,6 +31,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	name := args[0]
 	root, _ := cmd.Flags().GetString("root")
 	from, _ := cmd.Flags().GetString("from")
+	flagBaseRef, _ := cmd.Flags().GetString("base-ref")
 	force, _ := cmd.Flags().GetBool("force")
 	noGit, _ := cmd.Flags().GetBool("no-git")
 
@@ -60,18 +62,11 @@ func runInit(cmd *cobra.Command, args []string) error {
 		reposRoot = ws.ReposRoot
 		data = src
 	default:
-		if !term.IsTerminal(int(os.Stdin.Fd())) {
-			return fmt.Errorf("interactive init requires a TTY; use --from to specify a manifest")
-		}
+		var err error
 		reposRoot = "repos"
-		repos, err := interactiveAddRepos(name, reposRoot, nil)
+		data, err = interactiveInit(name, reposRoot, flagBaseRef)
 		if err != nil {
-			return fmt.Errorf("interactive setup: %w", err)
-		}
-		var marshalErr error
-		data, marshalErr = buildWorkspace(name, reposRoot, repos)
-		if marshalErr != nil {
-			return fmt.Errorf("building workspace manifest: %w", marshalErr)
+			return err
 		}
 	}
 
@@ -95,6 +90,40 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 	_, _ = fmt.Fprintf(cmd.OutOrStdout(), "Workspace %q created at %s\n", name, wsDir)
 	return nil
+}
+
+// interactiveInit runs the interactive workspace creation flow.
+func interactiveInit(name, reposRoot, flagBaseRef string) ([]byte, error) {
+	if !term.IsTerminal(int(os.Stdin.Fd())) {
+		return nil, fmt.Errorf("interactive init requires a TTY; use --from to specify a manifest")
+	}
+
+	repos, err := interactiveAddRepos(name, reposRoot, nil)
+	if err != nil {
+		return nil, fmt.Errorf("interactive setup: %w", err)
+	}
+
+	// Determine defaults.base_ref.
+	defaultBase := "main"
+	if len(repos) > 0 {
+		defaultBase = repos[0].Ref
+	}
+	baseRef := flagBaseRef
+	if baseRef == "" {
+		baseRef, err = promptInput("Default base branch for feature branches", defaultBase, nil)
+		if err != nil {
+			return nil, fmt.Errorf("interactive setup: %w", err)
+		}
+		if baseRef == "" {
+			baseRef = defaultBase
+		}
+	}
+
+	data, err := buildWorkspace(name, reposRoot, baseRef, repos)
+	if err != nil {
+		return nil, fmt.Errorf("building workspace manifest: %w", err)
+	}
+	return data, nil
 }
 
 // initGitRepo initializes a git repository in the workspace directory.

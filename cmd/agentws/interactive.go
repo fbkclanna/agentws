@@ -242,10 +242,11 @@ func interactiveAddRepos(name, reposRoot string, existingIDs map[string]bool) ([
 
 		seenIDs[id] = true
 		repos = append(repos, manifest.Repo{
-			ID:   id,
-			URL:  repoURL,
-			Path: repoPath,
-			Ref:  branch,
+			ID:      id,
+			URL:     repoURL,
+			Path:    repoPath,
+			Ref:     branch,
+			BaseRef: branch,
 		})
 
 		addMore, err := promptConfirm("Add another repository?")
@@ -261,12 +262,15 @@ func interactiveAddRepos(name, reposRoot string, existingIDs map[string]bool) ([
 }
 
 // buildWorkspace assembles a Workspace and serializes it to YAML.
-func buildWorkspace(name, reposRoot string, repos []manifest.Repo) ([]byte, error) {
+func buildWorkspace(name, reposRoot, baseRef string, repos []manifest.Repo) ([]byte, error) {
 	ws := manifest.Workspace{
 		Version:   1,
 		Name:      name,
 		ReposRoot: reposRoot,
 		Repos:     repos,
+	}
+	if baseRef != "" {
+		ws.Defaults.BaseRef = baseRef
 	}
 	return yaml.Marshal(&ws)
 }

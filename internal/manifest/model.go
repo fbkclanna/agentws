@@ -14,9 +14,10 @@ type Workspace struct {
 // Defaults defines default clone/checkout options applied to all repos
 // unless overridden at the repo level.
 type Defaults struct {
-	Depth          *int `yaml:"depth,omitempty"`
-	PartialClone   bool `yaml:"partial_clone,omitempty"`
-	SparseCheckout bool `yaml:"sparse_checkout,omitempty"`
+	Depth          *int   `yaml:"depth,omitempty"`
+	PartialClone   bool   `yaml:"partial_clone,omitempty"`
+	SparseCheckout bool   `yaml:"sparse_checkout,omitempty"`
+	BaseRef        string `yaml:"base_ref,omitempty"`
 }
 
 // Profile selects a subset of repos by tags or explicit IDs.
@@ -32,6 +33,7 @@ type Repo struct {
 	URL          string     `yaml:"url"`
 	Path         string     `yaml:"path"`
 	Ref          string     `yaml:"ref,omitempty"`
+	BaseRef      string     `yaml:"base_ref,omitempty"`
 	Tags         []string   `yaml:"tags,omitempty"`
 	Required     *bool      `yaml:"required,omitempty"`
 	Depth        *int       `yaml:"depth,omitempty"`
@@ -61,6 +63,15 @@ func (r *Repo) EffectivePartialClone(d Defaults) bool {
 		return *r.PartialClone
 	}
 	return d.PartialClone
+}
+
+// EffectiveBaseRef returns the base_ref for this repo, falling back to defaults.
+// Returns empty string if neither repo nor defaults specifies base_ref.
+func (r *Repo) EffectiveBaseRef(d Defaults) string {
+	if r.BaseRef != "" {
+		return r.BaseRef
+	}
+	return d.BaseRef
 }
 
 // EffectiveRef returns the ref for this repo, defaulting to "main".

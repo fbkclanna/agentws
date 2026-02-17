@@ -274,7 +274,7 @@ agentws checkout --branch feature/ABC-123-search-v2
 | オプション                           | 説明                            |
 |---------------------------------|-------------------------------|
 | `--create`                      | ブランチが存在しない場合に新規作成             |
-| `--from <ref>`                  | 新規作成時の起点（デフォルト `origin/main`） |
+| `--from <ref>`                  | 新規作成時の起点（`base_ref` を上書き）      |
 | `--profile <name>`              | profile に含まれる repo のみ対象       |
 | `--only <id1,id2>`              | 指定 repo のみ対象                  |
 | `--skip <id1,id2>`              | 指定 repo を除外                   |
@@ -297,7 +297,7 @@ agentws start ABC-123 search-v2
 | オプション                              | 説明                          |
 |------------------------------------|-----------------------------|
 | `--prefix feature\|bugfix\|hotfix` | ブランチ種別（デフォルト `feature`）     |
-| `--from <ref>`                     | 作成起点（デフォルト `origin/main`）   |
+| `--from <ref>`                     | 作成起点（`base_ref` を上書き）        |
 | `--profile <name>`                 | profile に含まれる repo のみ対象     |
 | `--only <id1,id2>`                 | 指定 repo のみ対象                |
 | `--skip <id1,id2>`                 | 指定 repo を除外                 |
@@ -307,7 +307,8 @@ agentws start ABC-123 search-v2
 
 > **補足:**
 > - remote に同名ブランチが存在する repo はそれを checkout します（tracking branch を作成）。
-> - ブランチが存在しない repo は `--from` を起点に新規作成します。
+> - ブランチが存在しない repo は `--from` または `origin/<base_ref>` を起点に新規作成します。
+> - 起点の解決順序: `--from` フラグ → `origin/<repo.base_ref>` → `origin/<defaults.base_ref>` → エラー。
 
 ### `doctor`
 
@@ -355,6 +356,7 @@ defaults:
   depth: 50
   partial_clone: false
   sparse_checkout: false
+  base_ref: main
 
 repos:
   - id: backend
@@ -373,6 +375,7 @@ repos:
     path: repos/analytics
     ref: main
     tags: [ "data" ]
+    base_ref: develop
     partial_clone: true
     sparse:
       - "pipelines/"
@@ -394,9 +397,10 @@ repos:
 
 | フィールド             | 説明                                        |
 |-------------------|-------------------------------------------|
-| `depth`           | shallow clone 深さ（例: `50`）                 |
-| `partial_clone`   | blob を取らない clone（`--filter=blob:none` 相当） |
-| `sparse_checkout` | sparse checkout の既定                       |
+| `depth`           | shallow clone 深さ（例: `50`）                                           |
+| `partial_clone`   | blob を取らない clone（`--filter=blob:none` 相当）                           |
+| `sparse_checkout` | sparse checkout の既定                                                 |
+| `base_ref`        | `start`/`checkout --create` のデフォルト起点ブランチ（ブランチ名のみ。例: `main`） |
 
 #### profiles
 
@@ -414,6 +418,7 @@ repos:
 | `url`（必須）                          | git URL                                      |
 | `path`（必須）                         | clone 先（相対パス。絶対パス / `..` 禁止）                 |
 | `ref`                              | branch/tag/commit（省略時は `main`）               |
+| `base_ref`                         | `start`/`checkout --create` の起点（`defaults.base_ref` を上書き） |
 | `tags`                             | profile 用タグ                                  |
 | `required`                         | `true`/`false`（省略時 `true`）                   |
 | `depth`, `partial_clone`, `sparse` | 個別設定                                         |
