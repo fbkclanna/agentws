@@ -56,36 +56,16 @@ func validate(ws *Workspace) error {
 		return fmt.Errorf("manifest: name is required")
 	}
 
+	if err := validateBaseRef(ws.Defaults.BaseRef, "defaults.base_ref"); err != nil {
+		return err
+	}
+
 	seen := make(map[string]bool, len(ws.Repos))
 	for i, r := range ws.Repos {
-		if r.ID == "" {
-			return fmt.Errorf("manifest: repos[%d].id is required", i)
-		}
-		if r.URL == "" {
-			return fmt.Errorf("manifest: repos[%d] (%s).url is required", i, r.ID)
-		}
-		if r.Path == "" {
-			return fmt.Errorf("manifest: repos[%d] (%s).path is required", i, r.ID)
-		}
-		if err := validatePath(r.Path, r.ID); err != nil {
+		if err := validateRepo(i, r, seen); err != nil {
 			return err
 		}
-		if seen[r.ID] {
-			return fmt.Errorf("manifest: duplicate repo id %q", r.ID)
-		}
 		seen[r.ID] = true
-
-		for j, ps := range r.PostSync {
-			if len(ps.Cmd) == 0 {
-				return fmt.Errorf("manifest: repos[%d] (%s).post_sync[%d].cmd is required", i, r.ID, j)
-			}
-			if ps.WorkDir != "" {
-				label := fmt.Sprintf("repos[%d] (%s).post_sync[%d].workdir", i, r.ID, j)
-				if err := validatePath(ps.WorkDir, label); err != nil {
-					return err
-				}
-			}
-		}
 	}
 
 	if ws.ReposRoot != "" {
@@ -94,6 +74,50 @@ func validate(ws *Workspace) error {
 		}
 	}
 
+	return nil
+}
+
+func validateRepo(i int, r Repo, seen map[string]bool) error {
+	if r.ID == "" {
+		return fmt.Errorf("manifest: repos[%d].id is required", i)
+	}
+	if r.URL == "" {
+		return fmt.Errorf("manifest: repos[%d] (%s).url is required", i, r.ID)
+	}
+	if r.Path == "" {
+		return fmt.Errorf("manifest: repos[%d] (%s).path is required", i, r.ID)
+	}
+	if err := validatePath(r.Path, r.ID); err != nil {
+		return err
+	}
+	if seen[r.ID] {
+		return fmt.Errorf("manifest: duplicate repo id %q", r.ID)
+	}
+	if err := validateBaseRef(r.BaseRef, fmt.Sprintf("repos[%d] (%s).base_ref", i, r.ID)); err != nil {
+		return err
+	}
+	for j, ps := range r.PostSync {
+		if len(ps.Cmd) == 0 {
+			return fmt.Errorf("manifest: repos[%d] (%s).post_sync[%d].cmd is required", i, r.ID, j)
+		}
+		if ps.WorkDir != "" {
+			label := fmt.Sprintf("repos[%d] (%s).post_sync[%d].workdir", i, r.ID, j)
+			if err := validatePath(ps.WorkDir, label); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// validateBaseRef ensures a base_ref is a branch name only (no origin/ or refs/ prefix).
+func validateBaseRef(v, label string) error {
+	if v == "" {
+		return nil
+	}
+	if strings.HasPrefix(v, "origin/") || strings.HasPrefix(v, "refs/") {
+		return fmt.Errorf("manifest: %s must be branch name only (no origin/ or refs/ prefix): %s", label, v)
+	}
 	return nil
 }
 

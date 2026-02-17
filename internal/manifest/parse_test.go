@@ -272,6 +272,142 @@ func TestValidate(t *testing.T) {
 	})
 }
 
+func TestRepo_EffectiveBaseRef(t *testing.T) {
+	t.Run("repo level", func(t *testing.T) {
+		r := Repo{BaseRef: "staging"}
+		got := r.EffectiveBaseRef(Defaults{})
+		if got != "staging" {
+			t.Errorf("got %q, want %q", got, "staging")
+		}
+	})
+
+	t.Run("defaults level", func(t *testing.T) {
+		r := Repo{}
+		got := r.EffectiveBaseRef(Defaults{BaseRef: "develop"})
+		if got != "develop" {
+			t.Errorf("got %q, want %q", got, "develop")
+		}
+	})
+
+	t.Run("empty when unset", func(t *testing.T) {
+		r := Repo{}
+		got := r.EffectiveBaseRef(Defaults{})
+		if got != "" {
+			t.Errorf("got %q, want empty", got)
+		}
+	})
+
+	t.Run("repo overrides defaults", func(t *testing.T) {
+		r := Repo{BaseRef: "staging"}
+		got := r.EffectiveBaseRef(Defaults{BaseRef: "develop"})
+		if got != "staging" {
+			t.Errorf("got %q, want %q", got, "staging")
+		}
+	})
+}
+
+func TestParse_baseRef(t *testing.T) {
+	data := []byte(`
+version: 1
+name: foo
+defaults:
+  base_ref: develop
+repos:
+  - id: backend
+    url: git@github.com:org/backend.git
+    path: repos/backend
+    ref: main
+  - id: frontend
+    url: git@github.com:org/frontend.git
+    path: repos/frontend
+    ref: main
+    base_ref: staging
+`)
+	ws, err := Parse(data)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if ws.Defaults.BaseRef != "develop" {
+		t.Errorf("defaults.base_ref = %q, want %q", ws.Defaults.BaseRef, "develop")
+	}
+	if ws.Repos[0].BaseRef != "" {
+		t.Errorf("repos[0].base_ref = %q, want empty", ws.Repos[0].BaseRef)
+	}
+	if ws.Repos[1].BaseRef != "staging" {
+		t.Errorf("repos[1].base_ref = %q, want %q", ws.Repos[1].BaseRef, "staging")
+	}
+}
+
+func TestValidateBaseRef(t *testing.T) {
+	tests := []struct {
+		name    string
+		yaml    string
+		wantErr bool
+	}{
+		{
+			name: "origin prefix rejected in defaults",
+			yaml: `
+version: 1
+name: foo
+defaults:
+  base_ref: origin/main
+repos:
+  - id: a
+    url: https://example.com/a.git
+    path: repos/a
+`,
+			wantErr: true,
+		},
+		{
+			name: "refs prefix rejected in repo",
+			yaml: `
+version: 1
+name: foo
+repos:
+  - id: a
+    url: https://example.com/a.git
+    path: repos/a
+    base_ref: refs/heads/main
+`,
+			wantErr: true,
+		},
+		{
+			name: "slash in branch name allowed",
+			yaml: `
+version: 1
+name: foo
+defaults:
+  base_ref: release/2026q1
+repos:
+  - id: a
+    url: https://example.com/a.git
+    path: repos/a
+`,
+			wantErr: false,
+		},
+		{
+			name: "empty base_ref ok",
+			yaml: `
+version: 1
+name: foo
+repos:
+  - id: a
+    url: https://example.com/a.git
+    path: repos/a
+`,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := Parse([]byte(tt.yaml))
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Parse() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 func TestSave_roundTrip(t *testing.T) {
 	ws := &Workspace{
 		Version:   1,
