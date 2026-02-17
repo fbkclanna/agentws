@@ -75,7 +75,7 @@ func collectNewRepos(ctx *workspace.Context, args []string, idOverride, pathOver
 	}
 
 	if len(args) == 0 {
-		if !term.IsTerminal(int(os.Stdin.Fd())) {
+		if !term.IsTerminal(int(os.Stdin.Fd())) { //nolint:gosec // Fd() fits in int on all supported platforms
 			return nil, fmt.Errorf("no URLs provided and stdin is not a TTY; provide URLs as arguments")
 		}
 		repos, err := interactiveAddRepos(ctx.Manifest.Name, ctx.Manifest.ReposRoot, existingIDs)

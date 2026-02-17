@@ -174,7 +174,7 @@ func IsCloned(repoDir string) bool {
 
 // run executes a git command in the given directory.
 func run(dir string, args ...string) error {
-	cmd := exec.Command("git", args...)
+	cmd := exec.Command("git", args...) //nolint:gosec // args are constructed internally
 	cmd.Dir = dir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -183,7 +183,7 @@ func run(dir string, args ...string) error {
 
 // output executes a git command and returns its stdout.
 func output(dir string, args ...string) (string, error) {
-	cmd := exec.Command("git", args...)
+	cmd := exec.Command("git", args...) //nolint:gosec // args are constructed internally
 	cmd.Dir = dir
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout

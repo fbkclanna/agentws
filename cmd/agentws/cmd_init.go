@@ -94,7 +94,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 // interactiveInit runs the interactive workspace creation flow.
 func interactiveInit(name, reposRoot, flagBaseRef string) ([]byte, error) {
-	if !term.IsTerminal(int(os.Stdin.Fd())) {
+	if !term.IsTerminal(int(os.Stdin.Fd())) { //nolint:gosec // Fd() fits in int on all supported platforms
 		return nil, fmt.Errorf("interactive init requires a TTY; use --from to specify a manifest")
 	}
 
