@@ -317,7 +317,7 @@ repos:
     ref: develop
     base_ref: develop
 `)
-	if err := os.WriteFile(src, data, 0644); err != nil { //nolint:gosec // test file
+	if err := os.WriteFile(src, data, 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -355,7 +355,7 @@ repos:
     url: git@github.com:org/svc.git
     path: repos/svc
 `)
-	if err := os.WriteFile(src, data, 0644); err != nil { //nolint:gosec // test file
+	if err := os.WriteFile(src, data, 0644); err != nil {
 		t.Fatal(err)
 	}
 

@@ -94,7 +94,7 @@ func TestRunCheckout_baseRefDefaults(t *testing.T) {
 	bare := testutil.CreateBareRepo(t)
 
 	wsYAML := fmt.Sprintf("version: 1\nname: test\nrepos_root: repos\ndefaults:\n  base_ref: main\nrepos:\n  - id: backend\n    url: %s\n    path: repos/backend\n    ref: main\n", bare)
-	if err := os.WriteFile(filepath.Join(wsDir, "workspace.yaml"), []byte(wsYAML), 0644); err != nil { //nolint:gosec // test file
+	if err := os.WriteFile(filepath.Join(wsDir, "workspace.yaml"), []byte(wsYAML), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -123,7 +123,7 @@ func TestRunCheckout_fromFlagOverridesBaseRef(t *testing.T) {
 	bare := testutil.CreateBareRepo(t)
 
 	wsYAML := fmt.Sprintf("version: 1\nname: test\nrepos_root: repos\ndefaults:\n  base_ref: nonexistent\nrepos:\n  - id: backend\n    url: %s\n    path: repos/backend\n    ref: main\n", bare)
-	if err := os.WriteFile(filepath.Join(wsDir, "workspace.yaml"), []byte(wsYAML), 0644); err != nil { //nolint:gosec // test file
+	if err := os.WriteFile(filepath.Join(wsDir, "workspace.yaml"), []byte(wsYAML), 0644); err != nil {
 		t.Fatal(err)
 	}
 

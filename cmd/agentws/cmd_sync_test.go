@@ -57,7 +57,7 @@ func repoName(i int) string {
 	if i < len(names) {
 		return names[i]
 	}
-	return "repo" + string(rune('a'+i)) //nolint:gosec // i is always small
+	return "repo" + string(rune('a'+i))
 }
 
 func TestRunSync_clonesRepos(t *testing.T) {

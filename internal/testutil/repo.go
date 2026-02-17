@@ -68,7 +68,7 @@ func CreateBareRepoWithBranch(t *testing.T, branch string) string {
 
 func run(t *testing.T, dir string, name string, args ...string) {
 	t.Helper()
-	cmd := exec.Command(name, args...) //nolint:gosec // test helper with controlled inputs
+	cmd := exec.Command(name, args...)
 	cmd.Dir = dir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

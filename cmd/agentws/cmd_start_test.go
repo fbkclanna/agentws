@@ -182,7 +182,7 @@ func TestRunStart_remoteBranchTracking(t *testing.T) {
 	bare := testutil.CreateBareRepoWithBranch(t, branch)
 
 	wsYAML := fmt.Sprintf("version: 1\nname: test\nrepos_root: repos\nrepos:\n  - id: backend\n    url: %s\n    path: repos/backend\n    ref: main\n", bare)
-	if err := os.WriteFile(filepath.Join(wsDir, "workspace.yaml"), []byte(wsYAML), 0644); err != nil { //nolint:gosec // test file
+	if err := os.WriteFile(filepath.Join(wsDir, "workspace.yaml"), []byte(wsYAML), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -215,7 +215,7 @@ func TestRunStart_strategySafe_dirtyRepoError(t *testing.T) {
 	}
 
 	dir := filepath.Join(wsDir, "repos", "backend")
-	if err := os.WriteFile(filepath.Join(dir, "README.md"), []byte("dirty\n"), 0644); err != nil { //nolint:gosec // test file
+	if err := os.WriteFile(filepath.Join(dir, "README.md"), []byte("dirty\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -240,7 +240,7 @@ func TestRunStart_strategyStash_dirtyRepo(t *testing.T) {
 	}
 
 	dir := filepath.Join(wsDir, "repos", "backend")
-	if err := os.WriteFile(filepath.Join(dir, "README.md"), []byte("dirty\n"), 0644); err != nil { //nolint:gosec // test file
+	if err := os.WriteFile(filepath.Join(dir, "README.md"), []byte("dirty\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -285,7 +285,7 @@ func TestRunStart_strategyReset_withForce(t *testing.T) {
 	}
 
 	dir := filepath.Join(wsDir, "repos", "backend")
-	if err := os.WriteFile(filepath.Join(dir, "README.md"), []byte("dirty\n"), 0644); err != nil { //nolint:gosec // test file
+	if err := os.WriteFile(filepath.Join(dir, "README.md"), []byte("dirty\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -367,7 +367,7 @@ func TestRunStart_multiRepo_dirtySubset(t *testing.T) {
 	}
 
 	dir := filepath.Join(wsDir, "repos", "frontend")
-	if err := os.WriteFile(filepath.Join(dir, "README.md"), []byte("dirty\n"), 0644); err != nil { //nolint:gosec // test file
+	if err := os.WriteFile(filepath.Join(dir, "README.md"), []byte("dirty\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -387,7 +387,7 @@ func TestRunStart_baseRefDefaults(t *testing.T) {
 	bare := testutil.CreateBareRepo(t)
 
 	wsYAML := fmt.Sprintf("version: 1\nname: test\nrepos_root: repos\ndefaults:\n  base_ref: main\nrepos:\n  - id: backend\n    url: %s\n    path: repos/backend\n    ref: main\n", bare)
-	if err := os.WriteFile(filepath.Join(wsDir, "workspace.yaml"), []byte(wsYAML), 0644); err != nil { //nolint:gosec // test file
+	if err := os.WriteFile(filepath.Join(wsDir, "workspace.yaml"), []byte(wsYAML), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -416,7 +416,7 @@ func TestRunStart_baseRefPerRepo(t *testing.T) {
 	bare2 := testutil.CreateBareRepo(t)
 
 	wsYAML := fmt.Sprintf("version: 1\nname: test\nrepos_root: repos\ndefaults:\n  base_ref: main\nrepos:\n  - id: backend\n    url: %s\n    path: repos/backend\n    ref: main\n  - id: frontend\n    url: %s\n    path: repos/frontend\n    ref: main\n    base_ref: main\n", bare1, bare2)
-	if err := os.WriteFile(filepath.Join(wsDir, "workspace.yaml"), []byte(wsYAML), 0644); err != nil { //nolint:gosec // test file
+	if err := os.WriteFile(filepath.Join(wsDir, "workspace.yaml"), []byte(wsYAML), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -446,7 +446,7 @@ func TestRunStart_fromFlagOverridesBaseRef(t *testing.T) {
 	bare := testutil.CreateBareRepo(t)
 
 	wsYAML := fmt.Sprintf("version: 1\nname: test\nrepos_root: repos\ndefaults:\n  base_ref: nonexistent\nrepos:\n  - id: backend\n    url: %s\n    path: repos/backend\n    ref: main\n", bare)
-	if err := os.WriteFile(filepath.Join(wsDir, "workspace.yaml"), []byte(wsYAML), 0644); err != nil { //nolint:gosec // test file
+	if err := os.WriteFile(filepath.Join(wsDir, "workspace.yaml"), []byte(wsYAML), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -539,7 +539,7 @@ func TestRunStart_noBaseRef_stashNotApplied(t *testing.T) {
 
 	// Make the repo dirty.
 	dir := filepath.Join(wsDir, "repos", "backend")
-	if err := os.WriteFile(filepath.Join(dir, "README.md"), []byte("dirty\n"), 0644); err != nil { //nolint:gosec // test file
+	if err := os.WriteFile(filepath.Join(dir, "README.md"), []byte("dirty\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
