@@ -301,6 +301,82 @@ func TestGenerateAgentsMD(t *testing.T) {
 	}
 }
 
+func TestRunInit_fromLocalFile_withBaseRef(t *testing.T) {
+	dir := t.TempDir()
+
+	src := filepath.Join(dir, "source.yaml")
+	data := []byte(`version: 1
+name: with-base
+repos_root: repos
+defaults:
+  base_ref: develop
+repos:
+  - id: svc
+    url: git@github.com:org/svc.git
+    path: repos/svc
+    ref: develop
+    base_ref: develop
+`)
+	if err := os.WriteFile(src, data, 0644); err != nil { //nolint:gosec // test file
+		t.Fatal(err)
+	}
+
+	root := newRootCmd()
+	root.SetArgs([]string{"--root", dir, "init", "with-base", "--from", src})
+
+	if err := root.Execute(); err != nil {
+		t.Fatalf("init --from failed: %v", err)
+	}
+
+	ws, err := manifest.Load(filepath.Join(dir, "with-base", "workspace.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ws.Defaults.BaseRef != "develop" {
+		t.Errorf("defaults.base_ref = %q, want %q", ws.Defaults.BaseRef, "develop")
+	}
+	if len(ws.Repos) != 1 {
+		t.Fatalf("repos count = %d, want 1", len(ws.Repos))
+	}
+	if ws.Repos[0].BaseRef != "develop" {
+		t.Errorf("repos[0].base_ref = %q, want %q", ws.Repos[0].BaseRef, "develop")
+	}
+}
+
+func TestRunInit_baseRefFlag(t *testing.T) {
+	dir := t.TempDir()
+
+	src := filepath.Join(dir, "source.yaml")
+	data := []byte(`version: 1
+name: flagtest
+repos_root: repos
+repos:
+  - id: svc
+    url: git@github.com:org/svc.git
+    path: repos/svc
+`)
+	if err := os.WriteFile(src, data, 0644); err != nil { //nolint:gosec // test file
+		t.Fatal(err)
+	}
+
+	// --base-ref flag should be ignored with --from (source manifest takes priority).
+	root := newRootCmd()
+	root.SetArgs([]string{"--root", dir, "init", "flagtest", "--from", src, "--base-ref", "ignored"})
+
+	if err := root.Execute(); err != nil {
+		t.Fatalf("init --from --base-ref failed: %v", err)
+	}
+
+	ws, err := manifest.Load(filepath.Join(dir, "flagtest", "workspace.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// --from source has no base_ref, so it should remain empty (--base-ref is ignored with --from).
+	if ws.Defaults.BaseRef != "" {
+		t.Errorf("defaults.base_ref = %q, want empty (--base-ref ignored with --from)", ws.Defaults.BaseRef)
+	}
+}
+
 func TestGenerateGitignore(t *testing.T) {
 	tests := []struct {
 		name      string

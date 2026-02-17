@@ -191,11 +191,12 @@ func buildNewRepos(urls []string, reposRoot, idOverride, pathOverride, refOverri
 		}
 
 		repos = append(repos, manifest.Repo{
-			ID:   id,
-			URL:  u,
-			Path: repoPath,
-			Ref:  ref,
-			Tags: repoTags,
+			ID:      id,
+			URL:     u,
+			Path:    repoPath,
+			Ref:     ref,
+			BaseRef: ref,
+			Tags:    repoTags,
 		})
 	}
 
