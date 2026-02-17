@@ -75,17 +75,17 @@ func runInit(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	if err := os.MkdirAll(wsDir, 0755); err != nil { //nolint:gosec // workspace dir needs to be world-readable
+	if err := os.MkdirAll(wsDir, 0755); err != nil {
 		return fmt.Errorf("creating workspace directory: %w", err)
 	}
 
-	if err := os.WriteFile(manifestPath, data, 0644); err != nil { //nolint:gosec // manifest file needs to be readable
+	if err := os.WriteFile(manifestPath, data, 0644); err != nil {
 		return fmt.Errorf("writing manifest: %w", err)
 	}
 
 	agentsMDPath := filepath.Join(wsDir, "AGENTS.md")
 	agentsMD := generateAgentsMD(name, reposRoot)
-	if err := os.WriteFile(agentsMDPath, []byte(agentsMD), 0644); err != nil { //nolint:gosec // AGENTS.md needs to be readable
+	if err := os.WriteFile(agentsMDPath, []byte(agentsMD), 0644); err != nil {
 		return fmt.Errorf("writing AGENTS.md: %w", err)
 	}
 
@@ -117,7 +117,7 @@ func initGitRepo(cmd *cobra.Command, wsDir, reposRoot string) {
 
 	gitignoreContent := generateGitignore(reposRoot)
 	gitignorePath := filepath.Join(wsDir, ".gitignore")
-	if err := os.WriteFile(gitignorePath, []byte(gitignoreContent), 0644); err != nil { //nolint:gosec // .gitignore needs to be readable
+	if err := os.WriteFile(gitignorePath, []byte(gitignoreContent), 0644); err != nil {
 		_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Warning: failed to write .gitignore: %v\n", err)
 		return
 	}
@@ -188,7 +188,7 @@ func fetchFrom(src string) ([]byte, error) {
 	repo, path, ok := strings.Cut(src, "#")
 	if !ok {
 		// Local file.
-		return os.ReadFile(src) //nolint:gosec // user-provided --from path
+		return os.ReadFile(src)
 	}
 
 	// Remote: git archive --remote=<repo> HEAD <path> | tar -xO <path>
@@ -200,19 +200,19 @@ func fetchFrom(src string) ([]byte, error) {
 	}
 	defer func() { _ = os.RemoveAll(tmpDir) }()
 
-	cmd := exec.Command("git", "clone", "--depth", "1", "--no-checkout", repo, tmpDir) //nolint:gosec // repo URL from user-provided --from flag
+	cmd := exec.Command("git", "clone", "--depth", "1", "--no-checkout", repo, tmpDir)
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		return nil, fmt.Errorf("cloning %s: %w", repo, err)
 	}
 
 	// Checkout just the single file.
-	checkout := exec.Command("git", "checkout", "HEAD", "--", path) //nolint:gosec // path from user-provided --from flag
+	checkout := exec.Command("git", "checkout", "HEAD", "--", path)
 	checkout.Dir = tmpDir
 	checkout.Stderr = os.Stderr
 	if err := checkout.Run(); err != nil {
 		return nil, fmt.Errorf("checking out %s from %s: %w", path, repo, err)
 	}
 
-	return os.ReadFile(filepath.Join(tmpDir, path)) //nolint:gosec // path from user-provided --from flag
+	return os.ReadFile(filepath.Join(tmpDir, path))
 }

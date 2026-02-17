@@ -82,7 +82,7 @@ func TestIsDirty(t *testing.T) {
 	}
 
 	// Make it dirty.
-	if err := os.WriteFile(filepath.Join(dest, "dirty.txt"), []byte("x"), 0644); err != nil { //nolint:gosec // test file
+	if err := os.WriteFile(filepath.Join(dest, "dirty.txt"), []byte("x"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -146,7 +146,7 @@ func TestStash(t *testing.T) {
 	}
 
 	// Create a tracked file change to stash.
-	if err := os.WriteFile(filepath.Join(dest, "README.md"), []byte("modified\n"), 0644); err != nil { //nolint:gosec // test file
+	if err := os.WriteFile(filepath.Join(dest, "README.md"), []byte("modified\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 

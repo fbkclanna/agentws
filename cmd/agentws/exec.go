@@ -20,7 +20,7 @@ func execCmd(repoDir string, ps manifest.PostSync) error {
 		dir = filepath.Join(repoDir, ps.WorkDir)
 	}
 
-	cmd := exec.Command(ps.Cmd[0], ps.Cmd[1:]...) //nolint:gosec // intentional: post_sync commands from manifest
+	cmd := exec.Command(ps.Cmd[0], ps.Cmd[1:]...)
 	cmd.Dir = dir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

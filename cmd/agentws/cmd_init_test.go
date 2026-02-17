@@ -23,7 +23,7 @@ repos:
     url: git@github.com:org/svc.git
     path: repos/svc
 `)
-	if err := os.WriteFile(src, data, 0644); err != nil { //nolint:gosec // test file
+	if err := os.WriteFile(src, data, 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -52,7 +52,7 @@ repos:
 	}
 
 	// Verify .gitignore contains repos_root.
-	gitignoreData, err := os.ReadFile(filepath.Join(wsDir, ".gitignore")) //nolint:gosec // test file
+	gitignoreData, err := os.ReadFile(filepath.Join(wsDir, ".gitignore"))
 	if err != nil {
 		t.Fatalf("reading .gitignore: %v", err)
 	}
@@ -61,7 +61,7 @@ repos:
 	}
 
 	// Verify AGENTS.md exists and contains the workspace name.
-	agentsMD, err := os.ReadFile(filepath.Join(wsDir, "AGENTS.md")) //nolint:gosec // test file
+	agentsMD, err := os.ReadFile(filepath.Join(wsDir, "AGENTS.md"))
 	if err != nil {
 		t.Fatalf("reading AGENTS.md: %v", err)
 	}
@@ -73,7 +73,7 @@ repos:
 func TestRunInit_alreadyExists(t *testing.T) {
 	dir := t.TempDir()
 	wsDir := filepath.Join(dir, "myws")
-	if err := os.MkdirAll(wsDir, 0755); err != nil { //nolint:gosec // test directory
+	if err := os.MkdirAll(wsDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -89,7 +89,7 @@ func TestRunInit_alreadyExists(t *testing.T) {
 func TestRunInit_force(t *testing.T) {
 	dir := t.TempDir()
 	wsDir := filepath.Join(dir, "myws")
-	if err := os.MkdirAll(wsDir, 0755); err != nil { //nolint:gosec // test directory
+	if err := os.MkdirAll(wsDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -103,7 +103,7 @@ repos:
     url: git@github.com:org/app.git
     path: repos/app
 `)
-	if err := os.WriteFile(src, data, 0644); err != nil { //nolint:gosec // test file
+	if err := os.WriteFile(src, data, 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -142,7 +142,7 @@ repos:
     url: git@github.com:org/svc.git
     path: repos/svc
 `)
-	if err := os.WriteFile(src, data, 0644); err != nil { //nolint:gosec // test file
+	if err := os.WriteFile(src, data, 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -173,7 +173,7 @@ repos:
 func TestRunInit_forceWithExistingGitRepo(t *testing.T) {
 	dir := t.TempDir()
 	wsDir := filepath.Join(dir, "myws")
-	if err := os.MkdirAll(wsDir, 0755); err != nil { //nolint:gosec // test directory
+	if err := os.MkdirAll(wsDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 
@@ -191,7 +191,7 @@ func TestRunInit_forceWithExistingGitRepo(t *testing.T) {
 	_ = gitConfig2.Run()
 
 	dummyFile := filepath.Join(wsDir, "existing.txt")
-	if err := os.WriteFile(dummyFile, []byte("existing"), 0644); err != nil { //nolint:gosec // test file
+	if err := os.WriteFile(dummyFile, []byte("existing"), 0644); err != nil {
 		t.Fatal(err)
 	}
 	gitAdd := exec.Command("git", "add", ".")
@@ -222,7 +222,7 @@ repos:
     url: git@github.com:org/app.git
     path: repos/app
 `)
-	if err := os.WriteFile(src, data, 0644); err != nil { //nolint:gosec // test file
+	if err := os.WriteFile(src, data, 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -256,7 +256,7 @@ repos:
     url: git@github.com:org/lib.git
     path: src/vendor/lib
 `)
-	if err := os.WriteFile(src, data, 0644); err != nil { //nolint:gosec // test file
+	if err := os.WriteFile(src, data, 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -268,7 +268,7 @@ repos:
 	}
 
 	wsDir := filepath.Join(dir, "custom")
-	gitignoreData, err := os.ReadFile(filepath.Join(wsDir, ".gitignore")) //nolint:gosec // test file
+	gitignoreData, err := os.ReadFile(filepath.Join(wsDir, ".gitignore"))
 	if err != nil {
 		t.Fatalf("reading .gitignore: %v", err)
 	}

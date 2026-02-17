@@ -21,7 +21,7 @@ func Save(path string, ws *Workspace) error {
 	if err != nil {
 		return fmt.Errorf("marshaling manifest: %w", err)
 	}
-	if err := os.WriteFile(path, data, 0644); err != nil { //nolint:gosec // manifest file needs to be readable
+	if err := os.WriteFile(path, data, 0644); err != nil {
 		return fmt.Errorf("writing manifest: %w", err)
 	}
 	return nil
@@ -29,7 +29,7 @@ func Save(path string, ws *Workspace) error {
 
 // Load reads and validates a workspace.yaml file.
 func Load(path string) (*Workspace, error) {
-	data, err := os.ReadFile(path) //nolint:gosec // path is workspace manifest file path
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("reading manifest: %w", err)
 	}
