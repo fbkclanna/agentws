@@ -269,7 +269,7 @@ agentws checkout --branch feature/ABC-123-search-v2
 | Option | Description |
 |--------|-------------|
 | `--create` | Create the branch if it doesn't exist |
-| `--from <ref>` | Starting point for new branches (default: `origin/main`) |
+| `--from <ref>` | Starting point for new branches (overrides `base_ref`) |
 | `--profile <name>` | Target only repos in the specified profile |
 | `--only <id1,id2>` | Target only specified repos |
 | `--skip <id1,id2>` | Exclude specified repos |
@@ -291,7 +291,7 @@ agentws start ABC-123 search-v2
 | Option | Description |
 |--------|-------------|
 | `--prefix feature\|bugfix\|hotfix` | Branch type (default: `feature`) |
-| `--from <ref>` | Starting point (default: `origin/main`) |
+| `--from <ref>` | Starting point for new branches (overrides `base_ref`) |
 | `--profile <name>` | Target only repos in the specified profile |
 | `--only <id1,id2>` | Target only specified repos |
 | `--skip <id1,id2>` | Exclude specified repos |
@@ -301,7 +301,8 @@ agentws start ABC-123 search-v2
 
 > **Notes:**
 > - If a remote branch with the same name already exists, it will be checked out (creating a tracking branch).
-> - For repos where the branch doesn't exist, a new branch is created from the `--from` reference.
+> - For repos where the branch doesn't exist, a new branch is created from the `--from` reference or `origin/<base_ref>`.
+> - Branch base resolution order: `--from` flag → `origin/<repo.base_ref>` → `origin/<defaults.base_ref>` → error.
 
 ### `doctor`
 
@@ -349,6 +350,7 @@ defaults:
   depth: 50
   partial_clone: false
   sparse_checkout: false
+  base_ref: main
 
 repos:
   - id: backend
@@ -367,6 +369,7 @@ repos:
     path: repos/analytics
     ref: main
     tags: [ "data" ]
+    base_ref: develop
     partial_clone: true
     sparse:
       - "pipelines/"
@@ -391,6 +394,7 @@ repos:
 | `depth` | Shallow clone depth (e.g., `50`) |
 | `partial_clone` | Blobless clone (`--filter=blob:none` equivalent) |
 | `sparse_checkout` | Default for sparse checkout |
+| `base_ref` | Default branch base for `start`/`checkout --create` (branch name only, e.g., `main`) |
 
 #### profiles
 
@@ -408,6 +412,7 @@ repos:
 | `url` (required) | Git URL |
 | `path` (required) | Clone destination (relative path; absolute paths and `..` are prohibited) |
 | `ref` | Branch/tag/commit (defaults to `main` if omitted) |
+| `base_ref` | Branch base for `start`/`checkout --create` (overrides `defaults.base_ref`) |
 | `tags` | Tags for profile filtering |
 | `required` | `true`/`false` (defaults to `true` if omitted) |
 | `depth`, `partial_clone`, `sparse` | Per-repo settings |
