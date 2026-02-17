@@ -7,6 +7,8 @@ pre-commit:
       run: golangci-lint run
     test:
       run: go test -race ./...
+    go-mod-tidy:
+      run: go mod tidy && git diff --exit-code go.mod go.sum
 
 pre-push:
   parallel: false
@@ -17,3 +19,5 @@ pre-push:
       run: golangci-lint run
     test:
       run: go test -race ./...
+    govulncheck:
+      run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
