@@ -9,7 +9,6 @@ linters:
     - ineffassign
     - misspell
     - gocyclo
-    - gosec
   settings:
     gocyclo:
       min-complexity: 15

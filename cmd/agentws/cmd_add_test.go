@@ -457,7 +457,7 @@ func TestRunAdd_emptyReposRoot(t *testing.T) {
 name: test
 repos: []
 `)
-	if err := os.WriteFile(filepath.Join(wsDir, "workspace.yaml"), data, 0644); err != nil { //nolint:gosec // test file
+	if err := os.WriteFile(filepath.Join(wsDir, "workspace.yaml"), data, 0644); err != nil {
 		t.Fatal(err)
 	}
 

@@ -22,7 +22,7 @@ func CreateBareRepo(t *testing.T) string {
 
 	// Create an initial commit.
 	readme := filepath.Join(work, "README.md")
-	if err := os.WriteFile(readme, []byte("# test\n"), 0644); err != nil { //nolint:gosec // test file
+	if err := os.WriteFile(readme, []byte("# test\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 	run(t, work, "git", "add", ".")
@@ -45,7 +45,7 @@ func CreateBareRepoWithBranch(t *testing.T, branch string) string {
 	run(t, work, "git", "config", "user.name", "Test")
 
 	readme := filepath.Join(work, "README.md")
-	if err := os.WriteFile(readme, []byte("# test\n"), 0644); err != nil { //nolint:gosec // test file
+	if err := os.WriteFile(readme, []byte("# test\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 	run(t, work, "git", "add", ".")
@@ -53,7 +53,7 @@ func CreateBareRepoWithBranch(t *testing.T, branch string) string {
 	run(t, work, "git", "checkout", "-b", branch)
 
 	f := filepath.Join(work, "feature.txt")
-	if err := os.WriteFile(f, []byte("feature\n"), 0644); err != nil { //nolint:gosec // test file
+	if err := os.WriteFile(f, []byte("feature\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 	run(t, work, "git", "add", ".")
