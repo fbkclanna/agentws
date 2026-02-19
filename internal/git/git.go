@@ -120,8 +120,11 @@ func RemoteBranchExists(repoDir, branch string) (bool, error) {
 }
 
 // CreateBranch creates a new branch from the given ref.
+// --no-track prevents automatic upstream tracking when 'from' is a remote
+// tracking ref (e.g. origin/main), which would cause git push to target the
+// base branch instead of the new branch.
 func CreateBranch(repoDir, branch, from string) error {
-	return run(repoDir, "checkout", "-b", branch, from)
+	return run(repoDir, "checkout", "-b", branch, "--no-track", from)
 }
 
 // CreateTrackingBranch creates a local tracking branch for origin/<branch>.

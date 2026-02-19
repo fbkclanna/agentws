@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -467,6 +468,43 @@ func TestRunStart_fromFlagOverridesBaseRef(t *testing.T) {
 	branch, _ := git.CurrentBranch(dir)
 	if branch != "feature/FROMFLAG-1-test" {
 		t.Errorf("expected branch feature/FROMFLAG-1-test, got %s", branch)
+	}
+}
+
+func TestRunStart_noUpstreamToBaseBranch(t *testing.T) {
+	wsDir := t.TempDir()
+	bare := testutil.CreateBareRepo(t)
+
+	wsYAML := fmt.Sprintf("version: 1\nname: test\nrepos_root: repos\ndefaults:\n  base_ref: main\nrepos:\n  - id: backend\n    url: %s\n    path: repos/backend\n    ref: main\n", bare)
+	if err := os.WriteFile(filepath.Join(wsDir, "workspace.yaml"), []byte(wsYAML), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	root := newRootCmd()
+	root.SetArgs([]string{"--root", wsDir, "sync"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("sync failed: %v", err)
+	}
+
+	root2 := newRootCmd()
+	root2.SetArgs([]string{"--root", wsDir, "start", "NOTRACK-1", "test"})
+	if err := root2.Execute(); err != nil {
+		t.Fatalf("start failed: %v", err)
+	}
+
+	dir := filepath.Join(wsDir, "repos", "backend")
+	branch, _ := git.CurrentBranch(dir)
+	if branch != "feature/NOTRACK-1-test" {
+		t.Errorf("expected branch feature/NOTRACK-1-test, got %s", branch)
+	}
+
+	// Verify upstream is NOT set to origin/main.
+	// With --no-track, git config branch.<name>.remote should not exist.
+	cmd := exec.Command("git", "config", "branch.feature/NOTRACK-1-test.remote")
+	cmd.Dir = dir
+	out, err := cmd.Output()
+	if err == nil {
+		t.Errorf("expected no upstream remote, but got %q", strings.TrimSpace(string(out)))
 	}
 }
 
