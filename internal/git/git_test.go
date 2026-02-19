@@ -138,6 +138,34 @@ func TestCreateBranch(t *testing.T) {
 	}
 }
 
+func TestCreateBranch_noTrack(t *testing.T) {
+	bare := testutil.CreateBareRepo(t)
+	dest := filepath.Join(t.TempDir(), "repo")
+	if err := Clone(bare, dest, CloneOpts{}); err != nil {
+		t.Fatalf("clone: %v", err)
+	}
+
+	// Create a branch from a remote tracking ref.
+	if err := CreateBranch(dest, "feature-branch", "origin/main"); err != nil {
+		t.Fatal(err)
+	}
+
+	branch, _ := CurrentBranch(dest)
+	if branch != "feature-branch" {
+		t.Errorf("expected to be on feature-branch, got %s", branch)
+	}
+
+	// Verify no upstream tracking is configured.
+	_, err := outputQuiet(dest, "config", "branch.feature-branch.remote")
+	if err == nil {
+		t.Error("expected no upstream remote to be configured for feature-branch")
+	}
+	_, err = outputQuiet(dest, "config", "branch.feature-branch.merge")
+	if err == nil {
+		t.Error("expected no upstream merge ref to be configured for feature-branch")
+	}
+}
+
 func TestStash(t *testing.T) {
 	bare := testutil.CreateBareRepo(t)
 	dest := filepath.Join(t.TempDir(), "repo")
