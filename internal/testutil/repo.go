@@ -66,6 +66,25 @@ func CreateBareRepoWithBranch(t *testing.T, branch string) string {
 	return bare
 }
 
+// PushNewCommit creates a new commit in a bare repo by cloning it into a
+// temporary working directory, committing a new file, and pushing back.
+func PushNewCommit(t *testing.T, bareRepo string) {
+	t.Helper()
+	dir := t.TempDir()
+	work := filepath.Join(dir, "pushwork")
+	run(t, dir, "git", "clone", bareRepo, work)
+	run(t, work, "git", "config", "user.email", "test@example.com")
+	run(t, work, "git", "config", "user.name", "Test")
+
+	f := filepath.Join(work, "newfile.txt")
+	if err := os.WriteFile(f, []byte("new content\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	run(t, work, "git", "add", ".")
+	run(t, work, "git", "commit", "-m", "new commit")
+	run(t, work, "git", "push")
+}
+
 func run(t *testing.T, dir string, name string, args ...string) {
 	t.Helper()
 	cmd := exec.Command(name, args...)

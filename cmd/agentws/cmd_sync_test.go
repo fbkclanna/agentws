@@ -1,11 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/fbkclanna/agentws/internal/git"
+	"github.com/fbkclanna/agentws/internal/lock"
 	"github.com/fbkclanna/agentws/internal/testutil"
 	"gopkg.in/yaml.v3"
 )
@@ -177,5 +180,255 @@ func TestRunSync_resetRequiresForce(t *testing.T) {
 	err := root.Execute()
 	if err == nil {
 		t.Fatal("expected error when using reset without --force")
+	}
+}
+
+func TestRunSync_strategyStash(t *testing.T) {
+	wsDir, _ := setupWorkspace(t, 1)
+
+	// Initial sync to clone.
+	root := newRootCmd()
+	root.SetArgs([]string{"--root", wsDir, "sync"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("initial sync failed: %v", err)
+	}
+
+	// Make dirty by modifying a tracked file (git stash only stashes tracked changes).
+	dir := filepath.Join(wsDir, "repos", "backend")
+	if err := os.WriteFile(filepath.Join(dir, "README.md"), []byte("modified\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Sync with stash strategy.
+	root2 := newRootCmd()
+	root2.SetArgs([]string{"--root", wsDir, "sync", "--strategy", "stash"})
+	if err := root2.Execute(); err != nil {
+		t.Fatalf("sync --strategy stash failed: %v", err)
+	}
+
+	// Repo should no longer be dirty after stash.
+	dirty, err := git.IsDirty(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if dirty {
+		t.Error("repo should not be dirty after stash sync")
+	}
+}
+
+func TestRunSync_strategyResetWithForce(t *testing.T) {
+	wsDir, _ := setupWorkspace(t, 1)
+
+	// Initial sync.
+	root := newRootCmd()
+	root.SetArgs([]string{"--root", wsDir, "sync"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("initial sync failed: %v", err)
+	}
+
+	// Make dirty by modifying a tracked file.
+	dir := filepath.Join(wsDir, "repos", "backend")
+	if err := os.WriteFile(filepath.Join(dir, "README.md"), []byte("modified\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Sync with reset + force.
+	root2 := newRootCmd()
+	root2.SetArgs([]string{"--root", wsDir, "sync", "--strategy", "reset", "--force"})
+	if err := root2.Execute(); err != nil {
+		t.Fatalf("sync --strategy reset --force failed: %v", err)
+	}
+
+	dirty, err := git.IsDirty(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if dirty {
+		t.Error("repo should not be dirty after reset sync")
+	}
+}
+
+func TestRunSync_lockCheckout(t *testing.T) {
+	wsDir, bareRepos := setupWorkspace(t, 1)
+
+	// Initial sync.
+	root := newRootCmd()
+	root.SetArgs([]string{"--root", wsDir, "sync"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("initial sync failed: %v", err)
+	}
+
+	// Pin current HEAD.
+	root2 := newRootCmd()
+	root2.SetArgs([]string{"--root", wsDir, "pin"})
+	if err := root2.Execute(); err != nil {
+		t.Fatalf("pin failed: %v", err)
+	}
+
+	// Read the pinned commit.
+	dir := filepath.Join(wsDir, "repos", "backend")
+	pinnedCommit, err := git.HeadCommitFull(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Advance the bare repo.
+	testutil.PushNewCommit(t, bareRepos[0])
+
+	// Sync with --lock should checkout the pinned commit.
+	root3 := newRootCmd()
+	root3.SetArgs([]string{"--root", wsDir, "sync", "--lock"})
+	if err := root3.Execute(); err != nil {
+		t.Fatalf("sync --lock failed: %v", err)
+	}
+
+	currentCommit, err := git.HeadCommitFull(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if currentCommit != pinnedCommit {
+		t.Errorf("expected HEAD=%s (pinned), got %s", pinnedCommit[:7], currentCommit[:7])
+	}
+}
+
+func TestRunSync_lockWithoutLockFile(t *testing.T) {
+	wsDir, _ := setupWorkspace(t, 1)
+
+	root := newRootCmd()
+	root.SetArgs([]string{"--root", wsDir, "sync", "--lock"})
+	err := root.Execute()
+	if err == nil {
+		t.Fatal("expected error when --lock without lock file")
+	}
+	if !strings.Contains(err.Error(), "no workspace.lock.yaml found") {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestRunSync_profileFilter(t *testing.T) {
+	wsDir := t.TempDir()
+	bare1 := testutil.CreateBareRepo(t)
+	bare2 := testutil.CreateBareRepo(t)
+
+	wsYAML := fmt.Sprintf(`version: 1
+name: test
+repos_root: repos
+profiles:
+  backend-only:
+    include_tags: [backend]
+repos:
+  - id: api
+    url: %s
+    path: repos/api
+    ref: main
+    tags: [backend]
+  - id: web
+    url: %s
+    path: repos/web
+    ref: main
+    tags: [frontend]
+`, bare1, bare2)
+
+	if err := os.WriteFile(filepath.Join(wsDir, "workspace.yaml"), []byte(wsYAML), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	root := newRootCmd()
+	root.SetArgs([]string{"--root", wsDir, "sync", "--profile", "backend-only"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("sync --profile failed: %v", err)
+	}
+
+	if !git.IsCloned(filepath.Join(wsDir, "repos", "api")) {
+		t.Error("api should be cloned (matches backend tag)")
+	}
+	if git.IsCloned(filepath.Join(wsDir, "repos", "web")) {
+		t.Error("web should NOT be cloned (frontend tag)")
+	}
+}
+
+func TestRunSync_postSync(t *testing.T) {
+	wsDir := t.TempDir()
+	bare := testutil.CreateBareRepo(t)
+
+	wsYAML := fmt.Sprintf(`version: 1
+name: test
+repos_root: repos
+repos:
+  - id: backend
+    url: %s
+    path: repos/backend
+    ref: main
+    post_sync:
+      - name: create marker
+        cmd: ["touch", "marker.txt"]
+`, bare)
+
+	if err := os.WriteFile(filepath.Join(wsDir, "workspace.yaml"), []byte(wsYAML), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	root := newRootCmd()
+	root.SetArgs([]string{"--root", wsDir, "sync"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("sync with post_sync failed: %v", err)
+	}
+
+	markerPath := filepath.Join(wsDir, "repos", "backend", "marker.txt")
+	if _, err := os.Stat(markerPath); err != nil {
+		t.Fatalf("marker.txt not created by post_sync: %v", err)
+	}
+}
+
+func TestRunSync_fetchOnAlreadyCloned(t *testing.T) {
+	wsDir, bareRepos := setupWorkspace(t, 1)
+
+	// Initial sync.
+	root := newRootCmd()
+	root.SetArgs([]string{"--root", wsDir, "sync"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("initial sync failed: %v", err)
+	}
+
+	// Advance bare repo.
+	testutil.PushNewCommit(t, bareRepos[0])
+
+	// Re-sync should complete without error (fetch succeeds on existing clone).
+	root2 := newRootCmd()
+	root2.SetArgs([]string{"--root", wsDir, "sync"})
+	if err := root2.Execute(); err != nil {
+		t.Fatalf("re-sync failed: %v", err)
+	}
+
+	// Verify repo is still cloned and in valid state.
+	dir := filepath.Join(wsDir, "repos", "backend")
+	if !git.IsCloned(dir) {
+		t.Error("repo should still be cloned after re-sync")
+	}
+}
+
+func TestRunSync_lockCheckoutVerifyLock(t *testing.T) {
+	wsDir, _ := setupWorkspace(t, 1)
+
+	// Sync and pin.
+	root := newRootCmd()
+	root.SetArgs([]string{"--root", wsDir, "sync", "--update-lock"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("sync --update-lock failed: %v", err)
+	}
+
+	lockPath := filepath.Join(wsDir, "workspace.lock.yaml")
+	lf, err := lock.Load(lockPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(lf.Repos) != 1 {
+		t.Fatalf("expected 1 repo in lock, got %d", len(lf.Repos))
+	}
+	if lf.Repos["backend"] == nil {
+		t.Fatal("backend not in lock file")
+	}
+	if lf.Repos["backend"].Commit == "" {
+		t.Error("backend commit should not be empty in lock file")
 	}
 }
