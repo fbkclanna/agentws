@@ -11,7 +11,7 @@ type File struct {
 
 // Repo records the pinned state of a single repository.
 type Repo struct {
-	URL    string `yaml:"url"`
+	URL    string `yaml:"url,omitempty"`
 	Ref    string `yaml:"ref"`
 	Commit string `yaml:"commit"`
 }

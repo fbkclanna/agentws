@@ -19,17 +19,19 @@ func newAddCmd() *cobra.Command {
 		Short: "Add repositories to the workspace",
 		RunE:  runAdd,
 	}
+	cmd.Flags().Bool("local", false, "Create a local repository (no remote URL)")
 	cmd.Flags().String("id", "", "Repository ID (single URL only)")
 	cmd.Flags().String("path", "", "Repository path (single URL only)")
 	cmd.Flags().String("ref", "", "Git ref to checkout")
 	cmd.Flags().StringSlice("tag", nil, "Tags to assign to the repositories")
-	cmd.Flags().Bool("sync", false, "Clone repositories after adding")
+	cmd.Flags().Bool("sync", false, "Clone/initialize repositories after adding")
 	cmd.Flags().Bool("json", false, "Output added repositories as JSON")
 	return cmd
 }
 
 func runAdd(cmd *cobra.Command, args []string) error {
 	root, _ := cmd.Flags().GetString("root")
+	isLocal, _ := cmd.Flags().GetBool("local")
 	idOverride, _ := cmd.Flags().GetString("id")
 	pathOverride, _ := cmd.Flags().GetString("path")
 	refOverride, _ := cmd.Flags().GetString("ref")
@@ -42,7 +44,12 @@ func runAdd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	newRepos, err := collectNewRepos(ctx, args, idOverride, pathOverride, refOverride, tags)
+	var newRepos []manifest.Repo
+	if isLocal {
+		newRepos, err = collectLocalRepos(args, ctx.Manifest.ReposRoot, pathOverride, refOverride, tags)
+	} else {
+		newRepos, err = collectNewRepos(ctx, args, idOverride, pathOverride, refOverride, tags)
+	}
 	if err != nil {
 		return err
 	}
@@ -117,17 +124,28 @@ func outputResults(cmd *cobra.Command, newRepos []manifest.Repo, asJSON bool) er
 		return enc.Encode(newRepos)
 	}
 	for _, r := range newRepos {
-		_, _ = fmt.Fprintf(out, "Added %s (%s)\n", r.ID, r.URL)
+		if r.IsLocal() {
+			_, _ = fmt.Fprintf(out, "Added %s (local)\n", r.ID)
+		} else {
+			_, _ = fmt.Fprintf(out, "Added %s (%s)\n", r.ID, r.URL)
+		}
 	}
 	return nil
 }
 
-// syncNewRepos clones newly added repos.
+// syncNewRepos clones or initializes newly added repos.
 func syncNewRepos(cmd *cobra.Command, ctx *workspace.Context, newRepos []manifest.Repo) {
 	for _, r := range newRepos {
 		dir := filepath.Join(ctx.Root, r.Path)
 		if git.IsCloned(dir) {
 			_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Skipping %s (already cloned)\n", r.ID)
+			continue
+		}
+		if r.IsLocal() {
+			_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Initializing %s ...\n", r.ID)
+			if err := initLocalRepo(dir); err != nil {
+				_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Warning: failed to initialize %s: %v\n", r.ID, err)
+			}
 			continue
 		}
 		_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Cloning %s ...\n", r.ID)
@@ -197,6 +215,64 @@ func buildNewRepos(urls []string, reposRoot, idOverride, pathOverride, refOverri
 			Ref:     ref,
 			BaseRef: ref,
 			Tags:    repoTags,
+		})
+	}
+
+	return repos, nil
+}
+
+// collectLocalRepos validates args for --local mode and builds local repo entries.
+func collectLocalRepos(args []string, reposRoot, pathOverride, refOverride string, tags []string) ([]manifest.Repo, error) {
+	if len(args) == 0 {
+		return nil, fmt.Errorf("--local requires at least one repository ID as argument")
+	}
+	return buildLocalRepos(args, reposRoot, pathOverride, refOverride, tags)
+}
+
+// buildLocalRepos constructs local Repo entries from IDs.
+func buildLocalRepos(ids []string, reposRoot, pathOverride, refOverride string, tags []string) ([]manifest.Repo, error) {
+	if len(ids) > 1 && pathOverride != "" {
+		return nil, fmt.Errorf("--path can only be used with a single repository")
+	}
+
+	repos := make([]manifest.Repo, 0, len(ids))
+	seen := make(map[string]bool, len(ids))
+
+	for _, id := range ids {
+		if id == "" {
+			return nil, fmt.Errorf("empty repository ID is not allowed")
+		}
+		if seen[id] {
+			return nil, fmt.Errorf("duplicate repository ID %q in arguments", id)
+		}
+		seen[id] = true
+
+		repoPath := pathOverride
+		if repoPath == "" {
+			if reposRoot != "" {
+				repoPath = reposRoot + "/" + id
+			} else {
+				repoPath = id
+			}
+		}
+
+		ref := refOverride
+		if ref == "" {
+			ref = "main"
+		}
+
+		var repoTags []string
+		if len(tags) > 0 {
+			repoTags = make([]string, len(tags))
+			copy(repoTags, tags)
+		}
+
+		repos = append(repos, manifest.Repo{
+			ID:    id,
+			Local: true,
+			Path:  repoPath,
+			Ref:   ref,
+			Tags:  repoTags,
 		})
 	}
 

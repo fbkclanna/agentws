@@ -166,6 +166,15 @@ func DefaultBranch(url string) (string, error) {
 	return "", fmt.Errorf("default branch not found for %s", url)
 }
 
+// HasRemote returns true if the git repository has at least one remote configured.
+func HasRemote(repoDir string) bool {
+	out, err := outputQuiet(repoDir, "remote")
+	if err != nil {
+		return false
+	}
+	return strings.TrimSpace(out) != ""
+}
+
 // IsCloned returns true if the directory is a git repository.
 func IsCloned(repoDir string) bool {
 	info, err := os.Stat(filepath.Join(repoDir, ".git"))

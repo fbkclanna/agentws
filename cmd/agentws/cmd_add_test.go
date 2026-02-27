@@ -451,6 +451,207 @@ func TestRunAdd_duplicatePathError(t *testing.T) {
 	}
 }
 
+// --- Local Repo Tests ---
+
+func TestBuildLocalRepos_single(t *testing.T) {
+	repos, err := buildLocalRepos([]string{"my-service"}, "repos", "", "", nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(repos) != 1 {
+		t.Fatalf("got %d repos, want 1", len(repos))
+	}
+	r := repos[0]
+	if r.ID != "my-service" {
+		t.Errorf("id = %q, want %q", r.ID, "my-service")
+	}
+	if !r.Local {
+		t.Error("expected local=true")
+	}
+	if r.URL != "" {
+		t.Errorf("url should be empty, got %q", r.URL)
+	}
+	if r.Path != "repos/my-service" {
+		t.Errorf("path = %q, want %q", r.Path, "repos/my-service")
+	}
+	if r.Ref != "main" {
+		t.Errorf("ref = %q, want %q", r.Ref, "main")
+	}
+}
+
+func TestBuildLocalRepos_withTags(t *testing.T) {
+	repos, err := buildLocalRepos([]string{"svc"}, "repos", "", "", []string{"core", "backend"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	tags := repos[0].Tags
+	if len(tags) != 2 || tags[0] != "core" || tags[1] != "backend" {
+		t.Errorf("tags = %v, want [core backend]", tags)
+	}
+}
+
+func TestBuildLocalRepos_duplicateID(t *testing.T) {
+	_, err := buildLocalRepos([]string{"svc", "svc"}, "repos", "", "", nil)
+	if err == nil {
+		t.Fatal("expected error for duplicate ID")
+	}
+}
+
+func TestRunAdd_local_single(t *testing.T) {
+	wsDir, _ := setupWorkspace(t, 0)
+
+	root := newRootCmd()
+	root.SetArgs([]string{"--root", wsDir, "add", "--local", "my-service"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("add --local failed: %v", err)
+	}
+
+	ws, err := manifest.Load(filepath.Join(wsDir, "workspace.yaml"))
+	if err != nil {
+		t.Fatalf("load manifest: %v", err)
+	}
+	if len(ws.Repos) != 1 {
+		t.Fatalf("repos count = %d, want 1", len(ws.Repos))
+	}
+	r := ws.Repos[0]
+	if r.ID != "my-service" {
+		t.Errorf("id = %q, want %q", r.ID, "my-service")
+	}
+	if !r.Local {
+		t.Error("expected local=true")
+	}
+	if r.URL != "" {
+		t.Errorf("url should be empty, got %q", r.URL)
+	}
+}
+
+func TestRunAdd_local_withSync(t *testing.T) {
+	wsDir, _ := setupWorkspace(t, 0)
+
+	root := newRootCmd()
+	root.SetArgs([]string{"--root", wsDir, "add", "--local", "my-service", "--sync"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("add --local --sync failed: %v", err)
+	}
+
+	dir := filepath.Join(wsDir, "repos", "my-service")
+	if !git.IsCloned(dir) {
+		t.Error("local repo should be initialized after --sync")
+	}
+
+	// Should not have a remote.
+	if git.HasRemote(dir) {
+		t.Error("local repo should not have a remote")
+	}
+}
+
+func TestRunAdd_local_withTags(t *testing.T) {
+	wsDir, _ := setupWorkspace(t, 0)
+
+	root := newRootCmd()
+	root.SetArgs([]string{"--root", wsDir, "add", "--local", "my-service", "--tag", "core", "--tag", "infra"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("add --local --tag failed: %v", err)
+	}
+
+	ws, err := manifest.Load(filepath.Join(wsDir, "workspace.yaml"))
+	if err != nil {
+		t.Fatalf("load manifest: %v", err)
+	}
+	tags := ws.Repos[0].Tags
+	if len(tags) != 2 || tags[0] != "core" || tags[1] != "infra" {
+		t.Errorf("tags = %v, want [core infra]", tags)
+	}
+}
+
+func TestRunAdd_local_duplicateID(t *testing.T) {
+	wsDir, _ := setupWorkspace(t, 1) // Has "backend".
+
+	root := newRootCmd()
+	root.SetArgs([]string{"--root", wsDir, "add", "--local", "backend"})
+	root.SetOut(&bytes.Buffer{})
+	root.SetErr(&bytes.Buffer{})
+	err := root.Execute()
+	if err == nil {
+		t.Fatal("expected error for duplicate ID")
+	}
+}
+
+func TestRunAdd_local_jsonOutput(t *testing.T) {
+	wsDir, _ := setupWorkspace(t, 0)
+
+	root := newRootCmd()
+	var stdout bytes.Buffer
+	root.SetOut(&stdout)
+	root.SetArgs([]string{"--root", wsDir, "add", "--local", "my-service", "--json"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("add --local --json failed: %v", err)
+	}
+
+	var repos []manifest.Repo
+	if err := json.Unmarshal(stdout.Bytes(), &repos); err != nil {
+		t.Fatalf("JSON parse failed: %v\noutput: %s", err, stdout.String())
+	}
+	if len(repos) != 1 {
+		t.Fatalf("got %d repos, want 1", len(repos))
+	}
+	if repos[0].ID != "my-service" {
+		t.Errorf("id = %q, want %q", repos[0].ID, "my-service")
+	}
+	if !repos[0].Local {
+		t.Error("expected local=true in JSON")
+	}
+}
+
+func TestRunAdd_local_noArgs(t *testing.T) {
+	wsDir, _ := setupWorkspace(t, 0)
+
+	root := newRootCmd()
+	root.SetArgs([]string{"--root", wsDir, "add", "--local"})
+	root.SetOut(&bytes.Buffer{})
+	root.SetErr(&bytes.Buffer{})
+	err := root.Execute()
+	if err == nil {
+		t.Fatal("expected error when --local with no args")
+	}
+}
+
+func TestRunAdd_local_withCustomPath(t *testing.T) {
+	wsDir, _ := setupWorkspace(t, 0)
+
+	root := newRootCmd()
+	root.SetArgs([]string{"--root", wsDir, "add", "--local", "my-service", "--path", "custom/dir"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("add --local --path failed: %v", err)
+	}
+
+	ws, err := manifest.Load(filepath.Join(wsDir, "workspace.yaml"))
+	if err != nil {
+		t.Fatalf("load manifest: %v", err)
+	}
+	if ws.Repos[0].Path != "custom/dir" {
+		t.Errorf("path = %q, want %q", ws.Repos[0].Path, "custom/dir")
+	}
+}
+
+func TestRunAdd_local_withRef(t *testing.T) {
+	wsDir, _ := setupWorkspace(t, 0)
+
+	root := newRootCmd()
+	root.SetArgs([]string{"--root", wsDir, "add", "--local", "my-service", "--ref", "develop"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("add --local --ref failed: %v", err)
+	}
+
+	ws, err := manifest.Load(filepath.Join(wsDir, "workspace.yaml"))
+	if err != nil {
+		t.Fatalf("load manifest: %v", err)
+	}
+	if ws.Repos[0].Ref != "develop" {
+		t.Errorf("ref = %q, want %q", ws.Repos[0].Ref, "develop")
+	}
+}
+
 func TestRunAdd_emptyReposRoot(t *testing.T) {
 	// Create workspace with empty repos_root.
 	wsDir := t.TempDir()

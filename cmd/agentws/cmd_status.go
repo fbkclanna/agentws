@@ -23,6 +23,7 @@ func newStatusCmd() *cobra.Command {
 
 type repoStatus struct {
 	ID       string `json:"id"`
+	Local    bool   `json:"local,omitempty"`
 	Cloned   bool   `json:"cloned"`
 	Branch   string `json:"branch,omitempty"`
 	Head     string `json:"head,omitempty"`
@@ -59,6 +60,9 @@ func runStatus(cmd *cobra.Command, _ []string) error {
 		if !s.Cloned {
 			state = "not cloned"
 		}
+		if s.Local {
+			state += " (local)"
+		}
 		tbl.Row(s.ID, state, s.Branch, s.Head, s.Dirty, s.LockDiff)
 	}
 	return tbl.Flush()
@@ -66,7 +70,7 @@ func runStatus(cmd *cobra.Command, _ []string) error {
 
 func collectStatus(ctx *workspace.Context, r manifest.Repo) repoStatus {
 	dir := ctx.RepoDir(r)
-	s := repoStatus{ID: r.ID}
+	s := repoStatus{ID: r.ID, Local: r.IsLocal()}
 
 	if !git.IsCloned(dir) {
 		return s

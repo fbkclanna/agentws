@@ -143,6 +143,18 @@ func syncRepo(ctx *workspace.Context, r manifest.Repo, strategy workspace.Strate
 		}
 	}
 
+	// For local repos, only checkout if the branch exists.
+	if r.IsLocal() {
+		exists, err := git.BranchExists(dir, ref)
+		if err != nil {
+			return fmt.Errorf("checking branch %s: %w", ref, err)
+		}
+		if !exists {
+			progress.Done(fmt.Sprintf("%s synced (local, branch %s does not exist yet)", r.ID, ref))
+			return nil
+		}
+	}
+
 	if err := git.Checkout(dir, ref); err != nil {
 		return fmt.Errorf("checkout %s: %w", ref, err)
 	}
@@ -158,6 +170,10 @@ func syncRepo(ctx *workspace.Context, r manifest.Repo, strategy workspace.Strate
 
 func cloneOrFetch(dir string, r manifest.Repo, defaults manifest.Defaults, progress *ui.Progress) error {
 	if !git.IsCloned(dir) {
+		if r.IsLocal() {
+			progress.Log("Initializing %s ...", r.ID)
+			return initLocalRepo(dir)
+		}
 		progress.Log("Cloning %s ...", r.ID)
 		opts := git.CloneOpts{
 			Depth:        r.EffectiveDepth(defaults),
@@ -165,6 +181,10 @@ func cloneOrFetch(dir string, r manifest.Repo, defaults manifest.Defaults, progr
 			Sparse:       r.Sparse,
 		}
 		return git.Clone(r.URL, dir, opts)
+	}
+	if r.IsLocal() {
+		progress.Log("Skipping fetch for local repo %s", r.ID)
+		return nil
 	}
 	progress.Log("Fetching %s ...", r.ID)
 	if err := git.Fetch(dir); err != nil {

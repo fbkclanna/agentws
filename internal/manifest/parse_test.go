@@ -149,6 +149,100 @@ repos:
 	}
 }
 
+func TestParse_localRepo(t *testing.T) {
+	t.Run("local without url is valid", func(t *testing.T) {
+		data := []byte(`
+version: 1
+name: foo
+repos:
+  - id: my-service
+    local: true
+    path: repos/my-service
+    ref: main
+`)
+		ws, err := Parse(data)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !ws.Repos[0].Local {
+			t.Error("expected local=true")
+		}
+		if !ws.Repos[0].IsLocal() {
+			t.Error("IsLocal() should return true")
+		}
+		if ws.Repos[0].URL != "" {
+			t.Errorf("URL should be empty, got %q", ws.Repos[0].URL)
+		}
+	})
+
+	t.Run("local with url is rejected", func(t *testing.T) {
+		data := []byte(`
+version: 1
+name: foo
+repos:
+  - id: my-service
+    local: true
+    url: git@github.com:org/a.git
+    path: repos/my-service
+`)
+		_, err := Parse(data)
+		if err == nil {
+			t.Fatal("expected error for local repo with url")
+		}
+	})
+
+	t.Run("non-local without url is rejected", func(t *testing.T) {
+		data := []byte(`
+version: 1
+name: foo
+repos:
+  - id: my-service
+    path: repos/my-service
+`)
+		_, err := Parse(data)
+		if err == nil {
+			t.Fatal("expected error for non-local repo without url")
+		}
+	})
+
+	t.Run("local repo round-trip", func(t *testing.T) {
+		ws := &Workspace{
+			Version:   1,
+			Name:      "local-test",
+			ReposRoot: "repos",
+			Repos: []Repo{
+				{ID: "remote-svc", URL: "https://example.com/a.git", Path: "repos/remote-svc", Ref: "main"},
+				{ID: "local-svc", Local: true, Path: "repos/local-svc", Ref: "main"},
+			},
+		}
+
+		dir := t.TempDir()
+		path := filepath.Join(dir, "workspace.yaml")
+
+		if err := Save(path, ws); err != nil {
+			t.Fatalf("Save failed: %v", err)
+		}
+
+		loaded, err := Load(path)
+		if err != nil {
+			t.Fatalf("Load failed: %v", err)
+		}
+
+		if len(loaded.Repos) != 2 {
+			t.Fatalf("repos count = %d, want 2", len(loaded.Repos))
+		}
+		if loaded.Repos[0].URL != "https://example.com/a.git" {
+			t.Errorf("repos[0].url = %q, want remote URL", loaded.Repos[0].URL)
+		}
+		if !loaded.Repos[1].Local {
+			t.Error("repos[1] should be local")
+		}
+		if loaded.Repos[1].URL != "" {
+			t.Errorf("repos[1].url should be empty, got %q", loaded.Repos[1].URL)
+		}
+	})
+}
+
 func TestFilterRepos_byProfile(t *testing.T) {
 	ws := &Workspace{
 		Profiles: map[string]Profile{

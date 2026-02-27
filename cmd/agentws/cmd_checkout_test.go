@@ -345,3 +345,46 @@ func TestRunCheckout_branchNotFoundSkips(t *testing.T) {
 		t.Errorf("expected branch main (unchanged), got %s", branch)
 	}
 }
+
+// --- Local repo checkout tests ---
+
+func TestRunCheckout_localRepo_existingBranch(t *testing.T) {
+	wsDir := setupLocalWorkspace(t)
+
+	// Create a branch to checkout to.
+	dir := filepath.Join(wsDir, "repos", "local-svc")
+	if err := git.CreateBranch(dir, "feature/test", "main"); err != nil {
+		t.Fatalf("create branch: %v", err)
+	}
+	// Go back to main.
+	if err := git.Checkout(dir, "main"); err != nil {
+		t.Fatalf("checkout main: %v", err)
+	}
+
+	root := newRootCmd()
+	root.SetArgs([]string{"--root", wsDir, "checkout", "--branch", "feature/test"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("checkout local repo failed: %v", err)
+	}
+
+	branch, _ := git.CurrentBranch(dir)
+	if branch != "feature/test" {
+		t.Errorf("expected branch feature/test, got %s", branch)
+	}
+}
+
+func TestRunCheckout_localRepo_createBranch(t *testing.T) {
+	wsDir := setupLocalWorkspace(t)
+
+	root := newRootCmd()
+	root.SetArgs([]string{"--root", wsDir, "checkout", "--branch", "feature/new", "--create", "--from", "main"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("checkout --create local repo failed: %v", err)
+	}
+
+	dir := filepath.Join(wsDir, "repos", "local-svc")
+	branch, _ := git.CurrentBranch(dir)
+	if branch != "feature/new" {
+		t.Errorf("expected branch feature/new, got %s", branch)
+	}
+}
