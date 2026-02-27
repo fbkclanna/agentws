@@ -599,3 +599,60 @@ func TestRunStart_noBaseRef_stashNotApplied(t *testing.T) {
 		t.Error("repo should still be dirty — stash should not have been applied before config error")
 	}
 }
+
+// setupLocalWorkspace creates a workspace with a local repo already initialized.
+func setupLocalWorkspace(t *testing.T) string {
+	t.Helper()
+	wsDir := t.TempDir()
+
+	wsYAML := `version: 1
+name: test
+repos_root: repos
+defaults:
+  base_ref: main
+repos:
+  - id: local-svc
+    local: true
+    path: repos/local-svc
+    ref: main
+    base_ref: main
+`
+	if err := os.WriteFile(filepath.Join(wsDir, "workspace.yaml"), []byte(wsYAML), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Init the local repo.
+	dir := filepath.Join(wsDir, "repos", "local-svc")
+	if err := initLocalRepo(dir); err != nil {
+		t.Fatalf("initLocalRepo failed: %v", err)
+	}
+
+	return wsDir
+}
+
+func TestRunStart_localRepo_createsBranch(t *testing.T) {
+	wsDir := setupLocalWorkspace(t)
+
+	root := newRootCmd()
+	root.SetArgs([]string{"--root", wsDir, "start", "LOCAL-1", "new-feature"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("start on local repo failed: %v", err)
+	}
+
+	dir := filepath.Join(wsDir, "repos", "local-svc")
+	branch, _ := git.CurrentBranch(dir)
+	if branch != "feature/LOCAL-1-new-feature" {
+		t.Errorf("expected branch feature/LOCAL-1-new-feature, got %s", branch)
+	}
+}
+
+func TestRunStart_localRepo_skipsFetch(t *testing.T) {
+	wsDir := setupLocalWorkspace(t)
+
+	// Should succeed without fetch (no remote configured).
+	root := newRootCmd()
+	root.SetArgs([]string{"--root", wsDir, "start", "LOCAL-2", "test"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("start on local repo failed (should skip fetch): %v", err)
+	}
+}

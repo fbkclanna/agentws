@@ -89,8 +89,10 @@ func startRepo(ctx *workspace.Context, r manifest.Repo, branch, from string, fro
 		return nil
 	}
 
-	if err := git.Fetch(dir); err != nil {
-		return fmt.Errorf("repo %s: fetch: %w", r.ID, err)
+	if !r.IsLocal() {
+		if err := git.Fetch(dir); err != nil {
+			return fmt.Errorf("repo %s: fetch: %w", r.ID, err)
+		}
 	}
 
 	// Resolve from before handleDirty to avoid side effects (stash/reset)
@@ -104,7 +106,7 @@ func startRepo(ctx *workspace.Context, r manifest.Repo, branch, from string, fro
 		return err
 	}
 
-	action, err := resolveCheckoutAction(dir, branch, true, repoFrom)
+	action, err := resolveCheckoutAction(dir, branch, true, repoFrom, r.IsLocal())
 	if err != nil {
 		return fmt.Errorf("repo %s: %w", r.ID, err)
 	}
@@ -135,12 +137,14 @@ func resolveFromIfNeeded(dir, branch string, create bool, r manifest.Repo, d man
 	if localExists {
 		return "", nil
 	}
-	remoteExists, err := git.RemoteBranchExists(dir, branch)
-	if err != nil {
-		return "", err
-	}
-	if remoteExists {
-		return "", nil
+	if !r.IsLocal() {
+		remoteExists, err := git.RemoteBranchExists(dir, branch)
+		if err != nil {
+			return "", err
+		}
+		if remoteExists {
+			return "", nil
+		}
 	}
 	return resolveStartFrom(r, d, cliFrom, cliSpecified)
 }
@@ -152,6 +156,9 @@ func resolveStartFrom(r manifest.Repo, d manifest.Defaults, cliFrom string, cliS
 	base := r.EffectiveBaseRef(d)
 	if base == "" {
 		return "", fmt.Errorf("base_ref is not configured (set base_ref in workspace.yaml or use --from)")
+	}
+	if r.IsLocal() {
+		return base, nil
 	}
 	return "origin/" + base, nil
 }

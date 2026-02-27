@@ -94,6 +94,10 @@ func checkSSHAuth(host string) bool {
 // checkRepoURLs tests connectivity to each repo URL listed in the manifest.
 func checkRepoURLs(ctx *workspace.Context) {
 	for _, r := range ctx.Manifest.Repos {
+		if r.IsLocal() {
+			fmt.Printf("  %s: local repo (skipping URL check)\n", r.ID)
+			continue
+		}
 		fmt.Printf("  Checking %s (%s)... ", r.ID, r.URL)
 		if checkGitLsRemote(r.URL) {
 			fmt.Println("OK")

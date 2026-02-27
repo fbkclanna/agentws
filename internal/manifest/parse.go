@@ -81,8 +81,14 @@ func validateRepo(i int, r Repo, seen map[string]bool) error {
 	if r.ID == "" {
 		return fmt.Errorf("manifest: repos[%d].id is required", i)
 	}
-	if r.URL == "" {
-		return fmt.Errorf("manifest: repos[%d] (%s).url is required", i, r.ID)
+	if r.Local {
+		if r.URL != "" {
+			return fmt.Errorf("manifest: repos[%d] (%s): local repo must not have a url", i, r.ID)
+		}
+	} else {
+		if r.URL == "" {
+			return fmt.Errorf("manifest: repos[%d] (%s).url is required", i, r.ID)
+		}
 	}
 	if r.Path == "" {
 		return fmt.Errorf("manifest: repos[%d] (%s).path is required", i, r.ID)

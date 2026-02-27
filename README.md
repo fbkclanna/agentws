@@ -143,6 +143,11 @@ Adds repositories to an existing workspace. Supports both CLI and interactive mo
 agentws add https://github.com/org/backend.git
 agentws add https://github.com/org/api.git --id api-service --ref develop --tag core
 
+# Local repo mode: create a local repository (no remote URL)
+agentws add --local my-service
+agentws add --local my-service --path custom/dir --ref main --tag core
+agentws add --local my-service --sync   # git init + initial commit
+
 # Interactive mode: run without URLs
 agentws add
 ```
@@ -153,11 +158,12 @@ When no URLs are provided and stdin is a TTY, interactive mode launches (same in
 
 | Option | Description |
 |--------|-------------|
+| `--local` | Create a local repository (no remote URL). Args are treated as IDs |
 | `--id <string>` | Repository ID override (single URL only) |
-| `--path <string>` | Repository path override (single URL only) |
-| `--ref <string>` | Git ref to checkout (default: auto-detected) |
+| `--path <string>` | Repository path override (single repo only) |
+| `--ref <string>` | Git ref to checkout (default: auto-detected, or `main` for local) |
 | `--tag <string>` | Tags to assign (repeatable) |
-| `--sync` | Clone repositories immediately after adding |
+| `--sync` | Clone/initialize repositories immediately after adding |
 | `--json` | Output added repositories as JSON |
 
 ### `sync`
@@ -378,6 +384,12 @@ repos:
     sparse:
       - "pipelines/"
       - "docs/"
+
+  - id: config
+    local: true
+    path: repos/config
+    ref: main
+    tags: [ "core" ]
 ```
 
 ### Fields
@@ -413,7 +425,8 @@ repos:
 | Field | Description |
 |-------|-------------|
 | `id` (required) | Logical name (must be unique) |
-| `url` (required) | Git URL |
+| `url` | Git URL (required for remote repos, must be empty for local repos) |
+| `local` | `true` for local repositories (no remote URL) |
 | `path` (required) | Clone destination (relative path; absolute paths and `..` are prohibited) |
 | `ref` | Branch/tag/commit (defaults to `main` if omitted) |
 | `base_ref` | Branch base for `start`/`checkout --create` (overrides `defaults.base_ref`) |

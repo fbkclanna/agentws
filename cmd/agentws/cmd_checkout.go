@@ -81,8 +81,10 @@ func checkoutRepo(ctx *workspace.Context, r manifest.Repo, branch string, create
 		return nil
 	}
 
-	if err := git.Fetch(dir); err != nil {
-		return fmt.Errorf("repo %s: fetch: %w", r.ID, err)
+	if !r.IsLocal() {
+		if err := git.Fetch(dir); err != nil {
+			return fmt.Errorf("repo %s: fetch: %w", r.ID, err)
+		}
 	}
 
 	// Resolve from before handleDirty to avoid side effects (stash/reset)
@@ -96,7 +98,7 @@ func checkoutRepo(ctx *workspace.Context, r manifest.Repo, branch string, create
 		return err
 	}
 
-	action, err := resolveCheckoutAction(dir, branch, create, repoFrom)
+	action, err := resolveCheckoutAction(dir, branch, create, repoFrom, r.IsLocal())
 	if err != nil {
 		return fmt.Errorf("repo %s: %w", r.ID, err)
 	}
@@ -118,7 +120,7 @@ type checkoutAction struct {
 	execute     func(dir string) error
 }
 
-func resolveCheckoutAction(dir, branch string, create bool, from string) (checkoutAction, error) {
+func resolveCheckoutAction(dir, branch string, create bool, from string, isLocal bool) (checkoutAction, error) {
 	localExists, err := git.BranchExists(dir, branch)
 	if err != nil {
 		return checkoutAction{}, err
@@ -130,15 +132,17 @@ func resolveCheckoutAction(dir, branch string, create bool, from string) (checko
 		}, nil
 	}
 
-	remoteExists, err := git.RemoteBranchExists(dir, branch)
-	if err != nil {
-		return checkoutAction{}, err
-	}
-	if remoteExists {
-		return checkoutAction{
-			description: fmt.Sprintf("create tracking branch %s from origin", branch),
-			execute:     func(dir string) error { return git.CreateTrackingBranch(dir, branch) },
-		}, nil
+	if !isLocal {
+		remoteExists, err := git.RemoteBranchExists(dir, branch)
+		if err != nil {
+			return checkoutAction{}, err
+		}
+		if remoteExists {
+			return checkoutAction{
+				description: fmt.Sprintf("create tracking branch %s from origin", branch),
+				execute:     func(dir string) error { return git.CreateTrackingBranch(dir, branch) },
+			}, nil
+		}
 	}
 
 	if create {

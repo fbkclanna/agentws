@@ -166,6 +166,15 @@ func DefaultBranch(url string) (string, error) {
 	return "", fmt.Errorf("default branch not found for %s", url)
 }
 
+// HasRemote returns true if the git repository has at least one remote configured.
+func HasRemote(repoDir string) bool {
+	out, err := outputQuiet(repoDir, "remote")
+	if err != nil {
+		return false
+	}
+	return strings.TrimSpace(out) != ""
+}
+
 // IsCloned returns true if the directory is a git repository.
 func IsCloned(repoDir string) bool {
 	info, err := os.Stat(filepath.Join(repoDir, ".git"))
@@ -206,6 +215,11 @@ func IsGitInstalled() bool {
 // Init runs git init in the given directory.
 func Init(dir string) error {
 	return runQuiet(dir, "init")
+}
+
+// InitWithBranch runs git init with a specific initial branch name.
+func InitWithBranch(dir, branch string) error {
+	return runQuiet(dir, "init", "-b", branch)
 }
 
 // Add stages the given paths in the repository.

@@ -30,16 +30,22 @@ type Profile struct {
 // Repo represents a single repository entry in the manifest.
 type Repo struct {
 	ID           string     `yaml:"id"`
-	URL          string     `yaml:"url"`
+	URL          string     `yaml:"url,omitempty"`
 	Path         string     `yaml:"path"`
 	Ref          string     `yaml:"ref,omitempty"`
 	BaseRef      string     `yaml:"base_ref,omitempty"`
+	Local        bool       `yaml:"local,omitempty"`
 	Tags         []string   `yaml:"tags,omitempty"`
 	Required     *bool      `yaml:"required,omitempty"`
 	Depth        *int       `yaml:"depth,omitempty"`
 	PartialClone *bool      `yaml:"partial_clone,omitempty"`
 	Sparse       []string   `yaml:"sparse,omitempty"`
 	PostSync     []PostSync `yaml:"post_sync,omitempty"`
+}
+
+// IsLocal returns true if this is a local repository (no remote URL).
+func (r *Repo) IsLocal() bool {
+	return r.Local
 }
 
 // PostSync defines a command to run after syncing a repo.

@@ -407,6 +407,105 @@ func TestRunSync_fetchOnAlreadyCloned(t *testing.T) {
 	}
 }
 
+// --- Local repo sync tests ---
+
+func TestRunSync_localRepo_init(t *testing.T) {
+	wsDir := t.TempDir()
+	wsYAML := `version: 1
+name: test
+repos_root: repos
+repos:
+  - id: local-svc
+    local: true
+    path: repos/local-svc
+    ref: main
+`
+	if err := os.WriteFile(filepath.Join(wsDir, "workspace.yaml"), []byte(wsYAML), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	root := newRootCmd()
+	root.SetArgs([]string{"--root", wsDir, "sync"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("sync failed: %v", err)
+	}
+
+	dir := filepath.Join(wsDir, "repos", "local-svc")
+	if !git.IsCloned(dir) {
+		t.Error("local repo should be initialized by sync")
+	}
+	if git.HasRemote(dir) {
+		t.Error("local repo should not have a remote")
+	}
+}
+
+func TestRunSync_localRepo_skipsFetch(t *testing.T) {
+	wsDir := t.TempDir()
+	wsYAML := `version: 1
+name: test
+repos_root: repos
+repos:
+  - id: local-svc
+    local: true
+    path: repos/local-svc
+    ref: main
+`
+	if err := os.WriteFile(filepath.Join(wsDir, "workspace.yaml"), []byte(wsYAML), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// First sync to init.
+	root := newRootCmd()
+	root.SetArgs([]string{"--root", wsDir, "sync"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("initial sync failed: %v", err)
+	}
+
+	// Second sync should not fail (no fetch for local repos).
+	root2 := newRootCmd()
+	root2.SetArgs([]string{"--root", wsDir, "sync"})
+	if err := root2.Execute(); err != nil {
+		t.Fatalf("re-sync of local repo failed: %v", err)
+	}
+}
+
+func TestRunSync_localRepo_mixedRepos(t *testing.T) {
+	wsDir := t.TempDir()
+	bare := testutil.CreateBareRepo(t)
+
+	wsYAML := fmt.Sprintf(`version: 1
+name: test
+repos_root: repos
+repos:
+  - id: remote-svc
+    url: %s
+    path: repos/remote-svc
+    ref: main
+  - id: local-svc
+    local: true
+    path: repos/local-svc
+    ref: main
+`, bare)
+
+	if err := os.WriteFile(filepath.Join(wsDir, "workspace.yaml"), []byte(wsYAML), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	root := newRootCmd()
+	root.SetArgs([]string{"--root", wsDir, "sync"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("sync mixed repos failed: %v", err)
+	}
+
+	// Both should be initialized/cloned.
+	if !git.IsCloned(filepath.Join(wsDir, "repos", "remote-svc")) {
+		t.Error("remote repo should be cloned")
+	}
+	if !git.IsCloned(filepath.Join(wsDir, "repos", "local-svc")) {
+		t.Error("local repo should be initialized")
+	}
+}
+
 func TestRunSync_lockCheckoutVerifyLock(t *testing.T) {
 	wsDir, _ := setupWorkspace(t, 1)
 
