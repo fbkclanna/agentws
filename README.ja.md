@@ -113,14 +113,21 @@ products/
 新しい workspace を作り、`workspace.yaml`、`AGENTS.md`、`CLAUDE.md`（`AGENTS.md` へのシンボリックリンク）を生成します。
 
 オプションなしで実行すると対話モードが起動し、リポジトリの URL とブランチを順次入力できます。
-URL からリポジトリ ID とパスを自動推定し、リモートのデフォルトブランチも検出します。
+URL からリポジトリ ID とパスを自動推定し、リモートのデフォルトブランチも検出します。URL を空のまま Enter を押すとローカルリポジトリ（リモートなし）を追加できます。
 
 ```sh
 agentws init foo
-# ? リポジトリの Git URL を入力: git@github.com:org/backend.git
+# リモートリポジトリ:
+# ? Enter Git repository URL (empty for local): git@github.com:org/backend.git
 #   → id: backend, path: repos/backend
-# ? ブランチ: main
-# ? 別のリポジトリを追加しますか？ No
+# ? Branch: main
+# ? Add another repository? Yes
+#
+# ローカルリポジトリ（URL を空で Enter）:
+# ? Enter Git repository URL (empty for local): [Enter]
+# ? Enter repository name (ID): config
+#   → id: config, path: repos/config (local)
+# ? Add another repository? No
 ```
 
 既存の manifest ファイルから作成する場合は `--from` を使います:
@@ -155,7 +162,7 @@ agentws add --local my-service --sync   # git init + 初期コミットまで実
 agentws add
 ```
 
-URL を指定せず stdin が TTY の場合、対話モードが起動します（`init` と同じインターフェース）。
+URL を指定せず stdin が TTY の場合、対話モードが起動します（`init` と同じインターフェース）。URL を空のまま Enter を押すとローカルリポジトリも追加できます。
 
 **オプション:**
 

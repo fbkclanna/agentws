@@ -196,11 +196,12 @@ func interactiveAddRepos(name, reposRoot string, existingIDs map[string]bool) ([
 
 	for {
 		repoURL, err := promptInput(
-			"Enter Git repository URL",
+			"Enter Git repository URL (empty for local)",
 			"git@github.com:org/repo.git",
 			func(s string) error {
-				if strings.TrimSpace(s) == "" {
-					return fmt.Errorf("URL is required")
+				s = strings.TrimSpace(s)
+				if s == "" {
+					return nil // empty means local repository
 				}
 				id := repoIDFromURL(s)
 				if id == "" || id == "." {
@@ -217,37 +218,19 @@ func interactiveAddRepos(name, reposRoot string, existingIDs map[string]bool) ([
 		}
 
 		repoURL = strings.TrimSpace(repoURL)
-		id := repoIDFromURL(repoURL)
-		repoPath := reposRoot + "/" + id
 
-		fmt.Printf("  → id: %s, path: %s\n", id, repoPath)
-
-		// Detect default branch with fallback.
-		defaultBranch := "main"
-		if b, err := git.DefaultBranch(repoURL); err == nil {
-			defaultBranch = b
+		var repo manifest.Repo
+		if repoURL == "" {
+			repo, err = promptLocalRepo(reposRoot, seenIDs)
 		} else {
-			fmt.Fprintf(os.Stderr, "  warning: failed to detect default branch (%v), fallback: main\n", err)
+			repo, err = buildRemoteRepoInteractive(repoURL, reposRoot)
 		}
-
-		branch, err := promptInput("Branch", defaultBranch, nil)
 		if err != nil {
 			return nil, err
 		}
 
-		branch = strings.TrimSpace(branch)
-		if branch == "" {
-			branch = defaultBranch
-		}
-
-		seenIDs[id] = true
-		repos = append(repos, manifest.Repo{
-			ID:      id,
-			URL:     repoURL,
-			Path:    repoPath,
-			Ref:     branch,
-			BaseRef: branch,
-		})
+		seenIDs[repo.ID] = true
+		repos = append(repos, repo)
 
 		addMore, err := promptConfirm("Add another repository?")
 		if err != nil {
@@ -259,6 +242,88 @@ func interactiveAddRepos(name, reposRoot string, existingIDs map[string]bool) ([
 	}
 
 	return repos, nil
+}
+
+// promptLocalRepo prompts the user for a local repository name (ID) and
+// builds a manifest.Repo with Local: true.
+func promptLocalRepo(reposRoot string, seenIDs map[string]bool) (manifest.Repo, error) {
+	id, err := promptInput(
+		"Enter repository name (ID)",
+		"my-service",
+		localRepoIDValidator(seenIDs),
+	)
+	if err != nil {
+		return manifest.Repo{}, err
+	}
+	id = strings.TrimSpace(id)
+
+	repoPath := id
+	if reposRoot != "" {
+		repoPath = reposRoot + "/" + id
+	}
+	fmt.Printf("  → id: %s, path: %s (local)\n", id, repoPath)
+
+	return manifest.Repo{
+		ID:    id,
+		Local: true,
+		Path:  repoPath,
+		Ref:   "main",
+	}, nil
+}
+
+// localRepoIDValidator returns a validation function for local repository IDs.
+func localRepoIDValidator(seenIDs map[string]bool) func(string) error {
+	return func(s string) error {
+		s = strings.TrimSpace(s)
+		if s == "" {
+			return fmt.Errorf("repository name is required")
+		}
+		if s == "." || s == ".." {
+			return fmt.Errorf("invalid repository name %q", s)
+		}
+		if strings.ContainsAny(s, "/\\") {
+			return fmt.Errorf("repository name must not contain path separators")
+		}
+		if seenIDs[s] {
+			return fmt.Errorf("repository ID %q is already added", s)
+		}
+		return nil
+	}
+}
+
+// buildRemoteRepoInteractive builds a manifest.Repo from a remote URL,
+// detecting the default branch and prompting the user for confirmation.
+func buildRemoteRepoInteractive(repoURL, reposRoot string) (manifest.Repo, error) {
+	id := repoIDFromURL(repoURL)
+	repoPath := id
+	if reposRoot != "" {
+		repoPath = reposRoot + "/" + id
+	}
+	fmt.Printf("  → id: %s, path: %s\n", id, repoPath)
+
+	defaultBranch := "main"
+	if b, err := git.DefaultBranch(repoURL); err == nil {
+		defaultBranch = b
+	} else {
+		fmt.Fprintf(os.Stderr, "  warning: failed to detect default branch (%v), fallback: main\n", err)
+	}
+
+	branch, err := promptInput("Branch", defaultBranch, nil)
+	if err != nil {
+		return manifest.Repo{}, err
+	}
+	branch = strings.TrimSpace(branch)
+	if branch == "" {
+		branch = defaultBranch
+	}
+
+	return manifest.Repo{
+		ID:      id,
+		URL:     repoURL,
+		Path:    repoPath,
+		Ref:     branch,
+		BaseRef: branch,
+	}, nil
 }
 
 // buildWorkspace assembles a Workspace and serializes it to YAML.
