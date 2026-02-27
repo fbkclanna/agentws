@@ -93,6 +93,8 @@ products/
 └── foo/
     ├── workspace.yaml
     ├── workspace.lock.yaml
+    ├── AGENTS.md
+    ├── CLAUDE.md -> AGENTS.md
     └── repos/
         ├── backend/
         ├── frontend/
@@ -104,7 +106,7 @@ products/
 
 ### `init <name>`
 
-Creates a new workspace and generates `workspace.yaml`.
+Creates a new workspace and generates `workspace.yaml`, `AGENTS.md`, and `CLAUDE.md` (a symlink to `AGENTS.md`).
 
 When run without options, it launches interactive mode where you can enter repository URLs and branches one by one. It automatically infers repo IDs and paths from URLs and detects remote default branches.
 

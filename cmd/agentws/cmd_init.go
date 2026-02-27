@@ -84,6 +84,11 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("writing AGENTS.md: %w", err)
 	}
 
+	claudeMDPath := filepath.Join(wsDir, "CLAUDE.md")
+	if err := os.Symlink("AGENTS.md", claudeMDPath); err != nil {
+		return fmt.Errorf("creating CLAUDE.md symlink: %w", err)
+	}
+
 	if !noGit {
 		initGitRepo(cmd, wsDir, reposRoot)
 	}
@@ -151,7 +156,7 @@ func initGitRepo(cmd *cobra.Command, wsDir, reposRoot string) {
 		return
 	}
 
-	if err := git.Add(wsDir, "workspace.yaml", ".gitignore", "AGENTS.md"); err != nil {
+	if err := git.Add(wsDir, "workspace.yaml", ".gitignore", "AGENTS.md", "CLAUDE.md"); err != nil {
 		_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Warning: git add failed: %v\n", err)
 		return
 	}

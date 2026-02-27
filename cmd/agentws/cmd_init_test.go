@@ -68,6 +68,16 @@ repos:
 	if !strings.Contains(string(agentsMD), "imported") {
 		t.Errorf("AGENTS.md should contain workspace name 'imported', got: %s", agentsMD)
 	}
+
+	// Verify CLAUDE.md is a symlink to AGENTS.md.
+	claudeMDPath := filepath.Join(wsDir, "CLAUDE.md")
+	target, err := os.Readlink(claudeMDPath)
+	if err != nil {
+		t.Fatalf("CLAUDE.md should be a symlink: %v", err)
+	}
+	if target != "AGENTS.md" {
+		t.Errorf("CLAUDE.md symlink target = %q, want %q", target, "AGENTS.md")
+	}
 }
 
 func TestRunInit_alreadyExists(t *testing.T) {
@@ -128,6 +138,14 @@ repos:
 	if _, err := os.Stat(filepath.Join(wsDir, "AGENTS.md")); err != nil {
 		t.Errorf("expected AGENTS.md with --force: %v", err)
 	}
+
+	// Verify CLAUDE.md symlink exists.
+	target, err := os.Readlink(filepath.Join(wsDir, "CLAUDE.md"))
+	if err != nil {
+		t.Errorf("expected CLAUDE.md symlink with --force: %v", err)
+	} else if target != "AGENTS.md" {
+		t.Errorf("CLAUDE.md symlink target = %q, want %q", target, "AGENTS.md")
+	}
 }
 
 func TestRunInit_noGit(t *testing.T) {
@@ -167,6 +185,13 @@ repos:
 	// AGENTS.md should exist even without git.
 	if _, err := os.Stat(filepath.Join(wsDir, "AGENTS.md")); err != nil {
 		t.Errorf("AGENTS.md should exist even with --no-git: %v", err)
+	}
+	// CLAUDE.md symlink should exist even without git.
+	target, err := os.Readlink(filepath.Join(wsDir, "CLAUDE.md"))
+	if err != nil {
+		t.Errorf("CLAUDE.md symlink should exist even with --no-git: %v", err)
+	} else if target != "AGENTS.md" {
+		t.Errorf("CLAUDE.md symlink target = %q, want %q", target, "AGENTS.md")
 	}
 }
 
