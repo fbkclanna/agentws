@@ -95,6 +95,8 @@ products/
     ├── workspace.lock.yaml
     ├── AGENTS.md
     ├── CLAUDE.md -> AGENTS.md
+    ├── docs/
+    │   └── agentws-guide.md
     └── repos/
         ├── backend/
         ├── frontend/
