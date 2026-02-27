@@ -110,13 +110,20 @@ products/
 
 Creates a new workspace and generates `workspace.yaml`, `AGENTS.md`, and `CLAUDE.md` (a symlink to `AGENTS.md`).
 
-When run without options, it launches interactive mode where you can enter repository URLs and branches one by one. It automatically infers repo IDs and paths from URLs and detects remote default branches.
+When run without options, it launches interactive mode where you can enter repository URLs and branches one by one. It automatically infers repo IDs and paths from URLs and detects remote default branches. Press Enter with an empty URL to add a local repository (no remote).
 
 ```sh
 agentws init foo
-# ? Enter the Git URL of the repository: git@github.com:org/backend.git
+# Remote repository:
+# ? Enter Git repository URL (empty for local): git@github.com:org/backend.git
 #   → id: backend, path: repos/backend
 # ? Branch: main
+# ? Add another repository? Yes
+#
+# Local repository (press Enter with empty URL):
+# ? Enter Git repository URL (empty for local): [Enter]
+# ? Enter repository name (ID): config
+#   → id: config, path: repos/config (local)
 # ? Add another repository? No
 ```
 
@@ -152,7 +159,7 @@ agentws add --local my-service --sync   # git init + initial commit
 agentws add
 ```
 
-When no URLs are provided and stdin is a TTY, interactive mode launches (same interface as `init`).
+When no URLs are provided and stdin is a TTY, interactive mode launches (same interface as `init`). You can also add local repositories by pressing Enter with an empty URL.
 
 **Options:**
 

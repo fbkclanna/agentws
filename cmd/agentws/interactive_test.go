@@ -108,3 +108,101 @@ func TestBuildWorkspace_withBaseRef(t *testing.T) {
 		t.Errorf("defaults.base_ref = %q, want %q", ws.Defaults.BaseRef, "develop")
 	}
 }
+
+func TestLocalRepoIDValidator(t *testing.T) {
+	seenIDs := map[string]bool{"existing": true}
+	validate := localRepoIDValidator(seenIDs)
+
+	tests := []struct {
+		name    string
+		input   string
+		wantErr bool
+		errMsg  string
+	}{
+		{"empty string", "", true, "repository name is required"},
+		{"dot", ".", true, `invalid repository name "."`},
+		{"double dot", "..", true, `invalid repository name ".."`},
+		{"slash", "foo/bar", true, "repository name must not contain path separators"},
+		{"backslash", `foo\bar`, true, "repository name must not contain path separators"},
+		{"duplicate", "existing", true, `repository ID "existing" is already added`},
+		{"valid name", "my-service", false, ""},
+		{"valid with underscore", "my_service", false, ""},
+		{"whitespace trimmed", "  my-svc  ", false, ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validate(tt.input)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("expected error, got nil")
+				}
+				if err.Error() != tt.errMsg {
+					t.Errorf("error = %q, want %q", err.Error(), tt.errMsg)
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+			}
+		})
+	}
+}
+
+func TestBuildWorkspace_mixedLocalAndRemote(t *testing.T) {
+	repos := []manifest.Repo{
+		{
+			ID:      "backend",
+			URL:     "git@github.com:org/backend.git",
+			Path:    "repos/backend",
+			Ref:     "main",
+			BaseRef: "main",
+		},
+		{
+			ID:    "config",
+			Local: true,
+			Path:  "repos/config",
+			Ref:   "main",
+		},
+	}
+
+	data, err := buildWorkspace("mixed", "repos", "main", repos)
+	if err != nil {
+		t.Fatalf("buildWorkspace error: %v", err)
+	}
+	ws, err := manifest.Parse(data)
+	if err != nil {
+		t.Fatalf("buildWorkspace produced invalid manifest: %v", err)
+	}
+	if ws.Name != "mixed" {
+		t.Errorf("name = %q, want %q", ws.Name, "mixed")
+	}
+	if len(ws.Repos) != 2 {
+		t.Fatalf("repos count = %d, want 2", len(ws.Repos))
+	}
+
+	// Remote repo
+	if ws.Repos[0].URL != "git@github.com:org/backend.git" {
+		t.Errorf("repos[0].url = %q, want remote URL", ws.Repos[0].URL)
+	}
+	if ws.Repos[0].Local {
+		t.Errorf("repos[0].local = true, want false")
+	}
+
+	// Local repo
+	if ws.Repos[1].URL != "" {
+		t.Errorf("repos[1].url = %q, want empty", ws.Repos[1].URL)
+	}
+	if !ws.Repos[1].Local {
+		t.Errorf("repos[1].local = false, want true")
+	}
+	if ws.Repos[1].ID != "config" {
+		t.Errorf("repos[1].id = %q, want %q", ws.Repos[1].ID, "config")
+	}
+	if ws.Repos[1].Path != "repos/config" {
+		t.Errorf("repos[1].path = %q, want %q", ws.Repos[1].Path, "repos/config")
+	}
+	if ws.Repos[1].Ref != "main" {
+		t.Errorf("repos[1].ref = %q, want %q", ws.Repos[1].Ref, "main")
+	}
+}
