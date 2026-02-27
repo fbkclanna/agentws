@@ -15,7 +15,7 @@ func initLocalRepo(dir string) error {
 		return fmt.Errorf("creating directory %s: %w", dir, err)
 	}
 
-	if err := git.Init(dir); err != nil {
+	if err := git.InitWithBranch(dir, "main"); err != nil {
 		return fmt.Errorf("git init in %s: %w", dir, err)
 	}
 

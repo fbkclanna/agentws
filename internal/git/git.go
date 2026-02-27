@@ -217,6 +217,11 @@ func Init(dir string) error {
 	return runQuiet(dir, "init")
 }
 
+// InitWithBranch runs git init with a specific initial branch name.
+func InitWithBranch(dir, branch string) error {
+	return runQuiet(dir, "init", "-b", branch)
+}
+
 // Add stages the given paths in the repository.
 func Add(dir string, paths ...string) error {
 	args := append([]string{"add", "--"}, paths...)
