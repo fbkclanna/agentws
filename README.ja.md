@@ -95,6 +95,10 @@ products/
 └── foo/
     ├── workspace.yaml
     ├── workspace.lock.yaml
+    ├── AGENTS.md
+    ├── CLAUDE.md -> AGENTS.md
+    ├── docs/
+    │   └── agentws-guide.md
     └── repos/
         ├── backend/
         ├── frontend/
@@ -106,7 +110,7 @@ products/
 
 ### `init <name>`
 
-新しい workspace を作り、`workspace.yaml` を生成します。
+新しい workspace を作り、`workspace.yaml`、`AGENTS.md`、`CLAUDE.md`（`AGENTS.md` へのシンボリックリンク）を生成します。
 
 オプションなしで実行すると対話モードが起動し、リポジトリの URL とブランチを順次入力できます。
 URL からリポジトリ ID とパスを自動推定し、リモートのデフォルトブランチも検出します。

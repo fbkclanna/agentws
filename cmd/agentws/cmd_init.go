@@ -78,10 +78,8 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("writing manifest: %w", err)
 	}
 
-	agentsMDPath := filepath.Join(wsDir, "AGENTS.md")
-	agentsMD := generateAgentsMD(name, reposRoot)
-	if err := os.WriteFile(agentsMDPath, []byte(agentsMD), 0644); err != nil {
-		return fmt.Errorf("writing AGENTS.md: %w", err)
+	if err := writeWorkspaceDocs(wsDir, name, reposRoot); err != nil {
+		return err
 	}
 
 	if !noGit {
@@ -151,7 +149,7 @@ func initGitRepo(cmd *cobra.Command, wsDir, reposRoot string) {
 		return
 	}
 
-	if err := git.Add(wsDir, "workspace.yaml", ".gitignore", "AGENTS.md"); err != nil {
+	if err := git.Add(wsDir, "workspace.yaml", ".gitignore", "AGENTS.md", "CLAUDE.md", "docs/agentws-guide.md"); err != nil {
 		_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Warning: git add failed: %v\n", err)
 		return
 	}
@@ -160,6 +158,30 @@ func initGitRepo(cmd *cobra.Command, wsDir, reposRoot string) {
 		_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Warning: git commit failed: %v\n", err)
 		return
 	}
+}
+
+// writeWorkspaceDocs writes AGENTS.md, CLAUDE.md symlink, and docs/agentws-guide.md into wsDir.
+func writeWorkspaceDocs(wsDir, name, reposRoot string) error {
+	agentsMDPath := filepath.Join(wsDir, "AGENTS.md")
+	if err := os.WriteFile(agentsMDPath, []byte(generateAgentsMD(name, reposRoot)), 0644); err != nil {
+		return fmt.Errorf("writing AGENTS.md: %w", err)
+	}
+
+	claudeMDPath := filepath.Join(wsDir, "CLAUDE.md")
+	if err := os.Symlink("AGENTS.md", claudeMDPath); err != nil {
+		return fmt.Errorf("creating CLAUDE.md symlink: %w", err)
+	}
+
+	docsDir := filepath.Join(wsDir, "docs")
+	if err := os.MkdirAll(docsDir, 0755); err != nil {
+		return fmt.Errorf("creating docs directory: %w", err)
+	}
+	guidePath := filepath.Join(docsDir, "agentws-guide.md")
+	if err := os.WriteFile(guidePath, []byte(generateAgentwsGuide()), 0644); err != nil {
+		return fmt.Errorf("writing agentws-guide.md: %w", err)
+	}
+
+	return nil
 }
 
 // generateAgentsMD creates AGENTS.md content with workspace name and repos_root embedded.
@@ -175,29 +197,40 @@ This workspace is managed by **agentws**, a multi-repo workspace manager for cod
 | `+"`workspace.yaml`"+` | Workspace manifest — defines repos, branches, and settings |
 | `+"`workspace.lock.yaml`"+` | Lock file — pinned commit SHAs (created by `+"`agentws pin`"+`) |
 | `+"`%s/`"+` | Root directory where all repositories are cloned |
+| `+"`docs/`"+` | Documentation directory |
+
+For agentws commands and workflows, see [docs/agentws-guide.md](docs/agentws-guide.md).
+`, name, reposRoot)
+}
+
+// generateAgentwsGuide creates the agentws usage guide content.
+func generateAgentwsGuide() string {
+	return `# agentws Guide
+
+Quick reference and typical workflows for agentws.
 
 ## Quick reference
 
 | Command | Description |
 |---|---|
-| `+"`agentws sync`"+` | Clone or update all repos to match the manifest |
-| `+"`agentws status`"+` | Show each repo's branch, HEAD, and dirty state |
-| `+"`agentws add`"+` | Add a new repo to the workspace interactively |
-| `+"`agentws pin`"+` | Snapshot current HEADs into `+"`workspace.lock.yaml`"+` |
-| `+"`agentws branches`"+` | List branches across all repos |
-| `+"`agentws checkout --branch <b>`"+` | Switch all repos to the given branch |
-| `+"`agentws start <ticket> <slug>`"+` | Create a feature branch across all repos |
-| `+"`agentws run -- <cmd>`"+` | Run a command in the workspace root |
+| ` + "`agentws sync`" + ` | Clone or update all repos to match the manifest |
+| ` + "`agentws status`" + ` | Show each repo's branch, HEAD, and dirty state |
+| ` + "`agentws add`" + ` | Add a new repo to the workspace interactively |
+| ` + "`agentws pin`" + ` | Snapshot current HEADs into ` + "`workspace.lock.yaml`" + ` |
+| ` + "`agentws branches`" + ` | List branches across all repos |
+| ` + "`agentws checkout --branch <b>`" + ` | Switch all repos to the given branch |
+| ` + "`agentws start <ticket> <slug>`" + ` | Create a feature branch across all repos |
+| ` + "`agentws run -- <cmd>`" + ` | Run a command in the workspace root |
 
 ## Typical workflow
 
-`+"```"+`sh
+` + "```" + `sh
 agentws sync            # clone / update repos
 agentws status          # verify state
 # ... make changes ...
 agentws pin             # lock current commits
-`+"```"+`
-`, name, reposRoot)
+` + "```" + `
+`
 }
 
 // generateGitignore creates .gitignore content with the repos directory excluded.

@@ -10,6 +10,46 @@ import (
 	"github.com/fbkclanna/agentws/internal/manifest"
 )
 
+// verifyWorkspaceDocs checks that AGENTS.md, CLAUDE.md symlink, and docs/agentws-guide.md
+// are correctly generated in wsDir.
+func verifyWorkspaceDocs(t *testing.T, wsDir, wsName string) {
+	t.Helper()
+
+	agentsMD, err := os.ReadFile(filepath.Join(wsDir, "AGENTS.md"))
+	if err != nil {
+		t.Fatalf("reading AGENTS.md: %v", err)
+	}
+	if !strings.Contains(string(agentsMD), wsName) {
+		t.Errorf("AGENTS.md should contain workspace name %q", wsName)
+	}
+	if !strings.Contains(string(agentsMD), "docs/agentws-guide.md") {
+		t.Errorf("AGENTS.md should reference docs/agentws-guide.md")
+	}
+	if strings.Contains(string(agentsMD), "Quick reference") {
+		t.Errorf("AGENTS.md should not contain Quick reference section (moved to docs/agentws-guide.md)")
+	}
+
+	guidePath := filepath.Join(wsDir, "docs", "agentws-guide.md")
+	guideData, err := os.ReadFile(guidePath)
+	if err != nil {
+		t.Fatalf("reading docs/agentws-guide.md: %v", err)
+	}
+	if !strings.Contains(string(guideData), "Quick reference") {
+		t.Errorf("docs/agentws-guide.md should contain Quick reference section")
+	}
+	if !strings.Contains(string(guideData), "agentws sync") {
+		t.Errorf("docs/agentws-guide.md should contain agentws sync command")
+	}
+
+	target, err := os.Readlink(filepath.Join(wsDir, "CLAUDE.md"))
+	if err != nil {
+		t.Fatalf("CLAUDE.md should be a symlink: %v", err)
+	}
+	if target != "AGENTS.md" {
+		t.Errorf("CLAUDE.md symlink target = %q, want %q", target, "AGENTS.md")
+	}
+}
+
 func TestRunInit_fromLocalFile(t *testing.T) {
 	dir := t.TempDir()
 
@@ -60,14 +100,8 @@ repos:
 		t.Errorf(".gitignore should contain repos/, got: %s", gitignoreData)
 	}
 
-	// Verify AGENTS.md exists and contains the workspace name.
-	agentsMD, err := os.ReadFile(filepath.Join(wsDir, "AGENTS.md"))
-	if err != nil {
-		t.Fatalf("reading AGENTS.md: %v", err)
-	}
-	if !strings.Contains(string(agentsMD), "imported") {
-		t.Errorf("AGENTS.md should contain workspace name 'imported', got: %s", agentsMD)
-	}
+	// Verify AGENTS.md, CLAUDE.md symlink, and docs/agentws-guide.md.
+	verifyWorkspaceDocs(t, wsDir, "imported")
 }
 
 func TestRunInit_alreadyExists(t *testing.T) {
@@ -128,6 +162,19 @@ repos:
 	if _, err := os.Stat(filepath.Join(wsDir, "AGENTS.md")); err != nil {
 		t.Errorf("expected AGENTS.md with --force: %v", err)
 	}
+
+	// Verify docs/agentws-guide.md exists.
+	if _, err := os.Stat(filepath.Join(wsDir, "docs", "agentws-guide.md")); err != nil {
+		t.Errorf("expected docs/agentws-guide.md with --force: %v", err)
+	}
+
+	// Verify CLAUDE.md symlink exists.
+	target, err := os.Readlink(filepath.Join(wsDir, "CLAUDE.md"))
+	if err != nil {
+		t.Errorf("expected CLAUDE.md symlink with --force: %v", err)
+	} else if target != "AGENTS.md" {
+		t.Errorf("CLAUDE.md symlink target = %q, want %q", target, "AGENTS.md")
+	}
 }
 
 func TestRunInit_noGit(t *testing.T) {
@@ -167,6 +214,17 @@ repos:
 	// AGENTS.md should exist even without git.
 	if _, err := os.Stat(filepath.Join(wsDir, "AGENTS.md")); err != nil {
 		t.Errorf("AGENTS.md should exist even with --no-git: %v", err)
+	}
+	// docs/agentws-guide.md should exist even without git.
+	if _, err := os.Stat(filepath.Join(wsDir, "docs", "agentws-guide.md")); err != nil {
+		t.Errorf("docs/agentws-guide.md should exist even with --no-git: %v", err)
+	}
+	// CLAUDE.md symlink should exist even without git.
+	target, err := os.Readlink(filepath.Join(wsDir, "CLAUDE.md"))
+	if err != nil {
+		t.Errorf("CLAUDE.md symlink should exist even with --no-git: %v", err)
+	} else if target != "AGENTS.md" {
+		t.Errorf("CLAUDE.md symlink target = %q, want %q", target, "AGENTS.md")
 	}
 }
 
@@ -297,7 +355,42 @@ func TestGenerateAgentsMD(t *testing.T) {
 			if !strings.Contains(got, tt.wantRoot) {
 				t.Errorf("generateAgentsMD() should contain repos_root %q", tt.wantRoot)
 			}
+			if !strings.Contains(got, "docs/agentws-guide.md") {
+				t.Errorf("generateAgentsMD() should reference docs/agentws-guide.md")
+			}
+			if strings.Contains(got, "Quick reference") {
+				t.Errorf("generateAgentsMD() should not contain Quick reference (moved to guide)")
+			}
+			if strings.Contains(got, "Typical workflow") {
+				t.Errorf("generateAgentsMD() should not contain Typical workflow (moved to guide)")
+			}
+			if !strings.Contains(got, "docs/") {
+				t.Errorf("generateAgentsMD() should contain docs/ in directory structure")
+			}
 		})
+	}
+}
+
+func TestGenerateAgentwsGuide(t *testing.T) {
+	got := generateAgentwsGuide()
+
+	if !strings.Contains(got, "Quick reference") {
+		t.Error("guide should contain Quick reference section")
+	}
+	if !strings.Contains(got, "Typical workflow") {
+		t.Error("guide should contain Typical workflow section")
+	}
+	if !strings.Contains(got, "agentws sync") {
+		t.Error("guide should contain agentws sync command")
+	}
+	if !strings.Contains(got, "agentws status") {
+		t.Error("guide should contain agentws status command")
+	}
+	if !strings.Contains(got, "agentws pin") {
+		t.Error("guide should contain agentws pin command")
+	}
+	if !strings.Contains(got, "agentws start") {
+		t.Error("guide should contain agentws start command")
 	}
 }
 
